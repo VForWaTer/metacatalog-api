@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "metacatalog-api"
+version = "0.1.0"
+description = "FastAPI application to manage MetaCatalog instances"
+authors = ["Mirko Mälicke <mirko.maelicke@kit.edu>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.115.0"
+pydantic = "^2.9.2"
+Jinja2 = "^3.1.4"
+python-dotenv = "^1.0.1"
+metacatalog = "^0.9.2"
+numpy = "1.26.4"
+uvicorn = "^0.30.6"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
