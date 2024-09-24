@@ -1,0 +1,37 @@
+<ul role="list" class=""divide-y divide-gray-100">
+    {% for entry in entries %}
+        <li class="flex justify-between gap-x-6 py-5">
+            <div class="min-w-0 flex-auto">
+                <p class="text-sm font-semibold leading-6 text-gray-900">{{ entry.title }}  - (ID: {{ entry.id }})</p>
+                <p class="mt-1 truncate text-xs leading-5 text-grey-500">{{ entry.abstract }}</p>
+            </div>
+            <div class="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
+                <p class="text-sm leadning-6 text-gray-900">
+                    {{ entry.variable.name }}
+                </p>
+                <p class="mt-1 text-xs leading-5 text-grey-500">
+                    {% if entry.datasource is not none %}
+                        {{entry.datasource.type.title}}: {{ entry.datasource.path }}
+                    {% else %}
+                        This dataset has no data source associated.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
+                <button 
+                    type="button" 
+                    class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100"
+                    hx-get="/entries/{{ entry.id }}.html"
+                    hx-target="#main-content"
+                    hx-swap="innerHTML"
+                >
+                    View
+                </button>
+            </div>
+        </li>
+    {% endfor %}
+</ul>
+
+<!-- Put this into the index as we have it -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/htmx.org@2.0.2"></script>

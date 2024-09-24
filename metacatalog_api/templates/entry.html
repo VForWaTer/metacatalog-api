@@ -1,0 +1,174 @@
+<div class="p-8 sm:p-4">
+    <div class="px-4 sm:px-0">
+        <h3 class="text-base font-semibold leading-7 text-gray-900">
+            {{ entry.title }}  - (ID: {{ entry.id }})
+        </h3>
+        <div>
+            <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                Publication: {{ entry.publication }}
+            </span>
+            <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                Last updated: {{ entry.lastUpdate }}
+            </span>
+        </div>
+        <p class="mt-1 max-w-4xl text-sm leading-6 text-gray-500">
+            {{ entry.abstract }}
+        </p>
+    </div>
+
+    <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Metadata</h4>
+    <div class="mt-1 border-t border-gray-200">
+        <dl class="divide-y divide-gray-200">
+            
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm font-medium leading-6 text-gray-900">Variable</dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.variable.name}} ({{entry.variable.symbol}})</dd>
+            </div>
+
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm font-medium leading-6 text-gray-900">Unit</dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.variable.unit.name}} ({{entry.variable.unit.symbol}})</dd>
+            </div>
+
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm font-medium leading-6 text-gray-900">UUID</dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.uuid}}</dd>
+            </div>
+
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm font-medium leading-6 text-gray-900">External ID</dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.external_id}}</dd>
+            </div>
+
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm font-medium leading-6 text-gray-900">Citation</dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.citation}}</dd>
+            </div>
+
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                <dt class="text-sm font-medium leading-6 text-gray-900">License</dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.license.title}}</dd>
+            </div>
+
+        </dl>
+    </div>
+
+    <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Authors</h4>
+    <div class="mt-1 border-t border-gray-200">
+        <dl class="divide-y divide-gray-200">
+            
+            {% for author in entry.authors %}
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    {% if author.last_name is none  %}
+                        <dt class="text-sm font-medium leading-6 text-gray-900">Oragnisation</dt>
+                        <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{author.organisation_name}} ({{author.organisation_abbrev}})</dd>
+                    {% else %}
+                        <dt class="text-sm font-medium leading-6 text-gray-900">{{ author.first_name }} {{author.last_name }}</dt>
+                        <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{author.affiliation}}</dd>
+                    {% endif %}   
+                </div>
+            {% endfor %}
+        </dl>
+    </div>
+    
+    {% if entry.datasource is not none %}
+        <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Data Source</h4>
+        <div class="mt-1 border-t border-gray-200">
+            <dl class="divide-y divide-gray-200">
+
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    <dt class="text-sm font-medium leading-6 text-gray-900">Path</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.datasource.path}}</dd>
+                </div>
+
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    <dt class="text-sm font-medium leading-6 text-gray-900">Type</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.datasource.type.title}}</dd>
+                </div>
+
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    <dt class="text-sm font-medium leading-6 text-gray-900">Variable name (column / coord name)</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                        <pre>{{','.join(entry.datasource.variable_names)}}</pre>
+                    </dd>
+                </div>
+
+                {% if entry.datasource.spatial_scale is not none %}
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    <dt class="text-sm font-medium leading-6 text-gray-900">Spatial Scale</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                        <ul>
+                            <li>
+                                <div class="">
+                                    <div class="flex w-min-0 flex-1 gap-2">
+                                        <span class="font-medium text-gray-900">Extent</span>
+                                        <span>{{ entry.datasource.spatial_scale.extent }}</span>
+                                    </div>
+                                    <div class="flex w-min-0 flex-1 gap-2">
+                                        <span class="font-medium text-gray-900">Resolution</span>
+                                        <span>{{ entry.datasource.spatial_scale.resolution_str }}</span>
+                                    </div>
+                                    <div class="flex w-min-0 flex-1 gap-2">
+                                        <span class="font-medium text-gray-900">Dimension names</span>
+                                        <span>
+                                            <pre>{{ ','.join(entry.datasource.spatial_scale.dimension_names) }}</pre>
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </dd>
+                </div>
+                {% endif %}
+
+                {% if entry.datasource.temporal_scale is not none %}
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    <dt class="text-sm font-medium leading-6 text-gray-900">Temporal Scale</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                        <ul>
+                            <li>
+                                <div class="">
+                                    <div class="flex w-min-0 flex-1 gap-2">
+                                        <span class="font-medium text-gray-900">Extent</span>
+                                        <span>
+                                            {{entry.datasource.temporal_scale.extent[0].strftime('%d.%m.%Y %H:%M') }}
+                                             - 
+                                            {{entry.datasource.temporal_scale.extent[1].strftime('%d.%m.%Y %H:%M') }}
+
+                                        </span>
+                                    </div>
+                                    <div class="flex w-min-0 flex-1 gap-2">
+                                        <span class="font-medium text-gray-900">Resolution</span>
+                                        <span>{{ entry.datasource.temporal_scale.resolution }}</span>
+                                    </div>
+                                    <div class="flex w-min-0 flex-1 gap-2">
+                                        <span class="font-medium text-gray-900">Dimension names</span>
+                                        <span>
+                                            <pre>{{ ','.join(entry.datasource.temporal_scale.dimension_names) }}</pre>
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </dd>
+                </div>
+                {% endif %}
+            
+            </dl>
+        </div>
+    {% endif %}
+
+    <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Details</h4>
+    <div class="mt-1 border-t border-gray-200">
+        <dl class="divide-y divide-gray-200">
+            {% for stem, detail in entry.details.items() %}
+                <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                    <dt class="text-sm font-medium leading-6 text-gray-900">{{ detail.name }} (stem: {{ stem }})</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{detail.value}}</dd>
+                </div>
+            {% endfor %}
+        </dl>
+    </div>
+
+</div>
+<script src="https://cdn.tailwindcss.com"></script>

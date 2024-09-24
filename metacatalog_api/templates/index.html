@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metacatalog API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body class="h-full">
+    <div class="min-h-full">
+        
+        <!-- Navigation -->
+        <nav class="bg-gray-800">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 item-center justify-between">
+                    <div class="flex items-center">
+
+                        <div class="flex-shrink-0 items-center justify-center">
+                            <a href="/" class="text-gray-100 hover:text-white font-semibold text-lg">Metacatalog API</a>
+                        </div>
+
+                        <div class="hidden md:block">
+                            <div class="ml-10 flex items-baseline space-x-4">
+                                <a class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer" hx-get="/entries.html" hx-target="#main-content" hx-swap="innerHTML">Metadata List</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>        
+        </nav>
+
+        <main>
+            <div id="map-content" class="mx-auto" hx-trigger="load" hx-get="/locations.html" hx-swap="innerHTML">
+            </div>
+            <form hx-get="/entries.html" hx-trigger="change" hx-target="#main-content" hx-swap="innerHTML">
+                <input 
+                    type="text" name="search" id="search" placeholder="Search for data" 
+                    class="shadow appearance-none border rounded w-96 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
+                />
+            </form>
+            <div id="main-content" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold tracking-tight text-gray-900">Welcome to Metacatalog API.</h1>
+
+            </div>
+        </main>
+
+    </div>
+</body>

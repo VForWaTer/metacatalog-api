@@ -1,0 +1,36 @@
+<div id="main-map">
+    <!-- add leaflet as a map -->
+    <!-- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script> -->
+    <div id="map"></div>
+
+    <style>
+        html, body {
+            padding: 0px;
+            margin: 0px;
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+    <script type="text/javascript">
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        varEntryLayer = null;
+
+        // add openstreetmap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // add the geojson layer
+        fetch('/locations.json')
+            .then(response =>  response.json())
+            .then(data => {
+                entryLayer = L.geoJSON(data).addTo(map);
+                map.fitBounds(entryLayer.getBounds());
+            });
+        
+    </script>
+</div>
