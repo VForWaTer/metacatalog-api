@@ -37,7 +37,15 @@ def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  sea
     # check if we filter or search
     with connect() as session:
         if search is not None:
-            results = db.search_entries(session, search, limit=limit, offset=offset)
+            search_results = db.search_entries(session, search, limit=limit, offset=offset)
+
+            if len(search_results) == 0:
+                return []
+            # in any other case get them by id
+            # in any other case, request the entries by id
+            results = db.get_entries_by_id(session=session, entry_ids=[r["id"] for r in search_results])
+
+            return results
         elif ids is not None:
             results = db.get_entries_by_id(session, ids, limit=limit, offset=offset)
         else:
@@ -46,19 +54,25 @@ def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  sea
     return results
 
 
-def entries_locations(filter: dict = {}) -> FeatureCollectionModel:
-    # build the filter
-    filt = ""
-    if len(filter.keys()) > 0:
-        filt = " AND " + "  AND ".join([f"{k} = '{v}'" for k, v in filter.items()])
+def entries_locations(ids: int | List[int] = None, limit: int = None, offset: int = None, search: str = None, filter: dict = {}) -> FeatureCollectionModel:
+    # handle the ids
+    if ids is None:
+        ids = []
+    if isinstance(ids, int):
+        ids = [ids]
     
-    # load the query
-    sql = load_sql("entries_locations.sql").format(filter=filt)
-
-    # execute the query
+    # check if we filter or search
     with connect() as session:
-        result = session.execute(sql).fetchone() 
-
-    return result["json_build_object"]
-
-
+        # run the search to ge the ids
+        if search is not None:
+            search_results = db.search_entries(session, search, limit=limit, offset=offset)
+            ids = [*ids, *[r["id"] for r in search_results]]
+        
+            # if no ids have been found, return an empty FeatureCollection
+            if len(ids) == 0:
+                return {"type": "FeatureCollection", "features": []}
+        
+        # in any other case we go for the locations.
+        result = db.get_entries_locations(session, ids=ids, limit=limit, offset=offset)
+    
+    return result

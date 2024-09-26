@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -33,6 +33,10 @@ def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int =
     # build the filter
     filter = {'entries.title': title, 'entries.abstract': description, 'variables.name': variable}
 
+    # sanitize the search
+    if search is not None and search.strip() == '':
+        search = None
+
     # call the function
     entries = core.entries(offset, limit, search=search,  filter={k: v for k, v in filter.items() if v is not None}) 
     
@@ -58,13 +62,13 @@ def get_entry(id: int, request: Request, fmt: FMT = None):
 
 
 @app.get('/locations.{fmt}', response_model=FeatureCollectionModel)
-def get_entries_geojson(request: Request, fmt: FMT = None):
+def get_entries_geojson(request: Request, fmt: FMT = None, search: str = None, offset: int = None, limit: int = None, ids: int | List[int] = None):
     # check if we should return html
     if fmt == 'html':
         return templates.TemplateResponse(request=request, name="map.html", context={})
     
     # in all other casese call the function and return the feature collection
-    geometries = core.entries_locations()
+    geometries = core.entries_locations(limit=limit, offset=offset, search=search, ids=ids)
     
     return geometries
 

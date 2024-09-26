@@ -3,6 +3,7 @@ from pathlib import Path
 
 from models import Author, Metadata
 from psycopg import Cursor
+from pydantic_geojson import FeatureCollectionModel
 
 SQL_DIR = Path(__file__).parent / "sql"
 
@@ -65,7 +66,33 @@ def get_entries_by_id(session: Cursor, entry_ids: int | List[int], limit: int = 
     return [Metadata(**result) for result in results]
 
 
-def search_entries(session: Cursor, search: str, limit: int = None, offset: int = None) -> List[Metadata]:
+def get_entries_locations(session: Cursor, ids: List[int] = None, limit: int = None, offset: int = None) -> FeatureCollectionModel:
+    # build the id filter
+    if ids is None or len(ids) == 0:
+        filt = ""
+    else:
+        filt = f" AND entries.id IN ({', '.join([str(i) for i in ids])})"
+    
+    # build limit and offset
+    lim = f" LIMIT {limit} " if limit is not None else ""
+    off = f" OFFSET {offset} " if offset is not None else ""
+
+    # load the query
+    sql = load_sql("entries_locations.sql").format(filter=filt, limit=lim, offset=off)
+
+    # execute the query
+    result = session.execute(sql).fetchone()
+
+    return result['json_build_object']
+
+
+class SearchResult:
+    id: int
+    matches: List[str]
+    weights: int
+
+
+def search_entries(session: Cursor, search: str, limit: int = None, offset: int = None) -> List[SearchResult]:
     # build the limit and offset
     lim = f" LIMIT {limit} " if limit is not None else ""
     off = f" OFFSET {offset} " if offset is not None else ""
@@ -76,11 +103,7 @@ def search_entries(session: Cursor, search: str, limit: int = None, offset: int 
     # execute the query
     search_results = [r['search_meta'] for r in session.execute(sql).fetchall()]
 
-    # get the entries by the searched ids
-    results = get_entries_by_id(session=session, entry_ids=[r["id"] for r in search_results])
-
-    return results
-
+    return search_results
 
 
 def get_authors(session: Cursor, search: str = None) -> List[Author]:
