@@ -25,16 +25,16 @@ def index(request: Request):
 
 @app.get('/entries')
 @app.get('/entries.{fmt}')
-def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int = 100, id: int = None, title: str = None, description: str = None, variable: str = None):
+def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int = 100, search: str = None, title: str = None, description: str = None, variable: str = None):
     """
     Load all entries from the database. 
     You may add a filter, limit and offset.
     """
     # build the filter
-    filter = dict(id=id, title=title, description=description, variable=variable)
+    filter = {'entries.title': title, 'entries.abstract': description, 'variables.name': variable}
 
     # call the function
-    entries = core.entries(offset, limit, {k: v for k, v in filter.items() if v is not None}) 
+    entries = core.entries(offset, limit, search=search,  filter={k: v for k, v in filter.items() if v is not None}) 
     
     # check if we should return html
     if fmt == 'html':
@@ -46,7 +46,7 @@ def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int =
 @app.get('/entries/{id}.{fmt}')
 def get_entry(id: int, request: Request, fmt: FMT = None):
     # call the function
-    entries = core.entries(filter=dict(id=id))
+    entries = core.entries(ids=id)
     
     if len(entries) == 0:
         return HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
@@ -67,6 +67,7 @@ def get_entries_geojson(request: Request, fmt: FMT = None):
     geometries = core.entries_locations()
     
     return geometries
+
 
 if __name__ == "__main__":
     import uvicorn

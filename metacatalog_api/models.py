@@ -6,7 +6,7 @@ SQLModel in a future version. You can use this model to serialize and deserializ
 the metacata without the PostgreSQL database from JSON dumps.
 
 """
-from typing import Optional, TYPE_CHECKING, Dict, List, Literal, Tuple
+from typing import Optional,  Dict, List, Tuple
 from datetime import datetime, timedelta
 from enum import Enum
 import json
@@ -14,8 +14,6 @@ import json
 from pydantic import BaseModel
 from pydantic import UUID4, computed_field
 
-if TYPE_CHECKING:
-    from metacatalog.models.entry import Entry
 
 class Unit(BaseModel):
     id: int
@@ -36,7 +34,6 @@ class Keyword(BaseModel):
     uuid: str
     value: str
     path: str
-    children: List[str]
     thesaurusName: Thesaurus
 
 class Variable(BaseModel):
@@ -45,7 +42,7 @@ class Variable(BaseModel):
     symbol: str
     unit: Unit
     column_names: List[str]
-    keyword: Optional[Keyword] = None
+    keyword: Optional[Keyword] = None   
 
 class License(BaseModel):
     id: int
@@ -59,9 +56,9 @@ class License(BaseModel):
 
 class Detail(BaseModel):
     id: Optional[int] = None 
-    name: Optional[str] = None
+    key: Optional[str] = None
+    stem: Optional[str] = None
     value: Optional[str | float | bool | dict] = None
-    type: Optional[Literal['string']] = None
 
 class DataSourceNames(Enum):
     internal = 'internal'
@@ -154,18 +151,8 @@ class Metadata(BaseModel):
     authors: List[Author] = []
     variable: Variable
     datasource: Optional[DataSource] = None
-    details: Dict[str, Detail] = {}
+    details: List[Detail] = []
     keywords: List[Keyword] = []
-
-
-def from_entry(entry: 'Entry') -> Metadata:
-    """
-    Transform an SQLAlchemy Entry instance to the Metadata model.
-    """
-    # get the variale
-    entry_dict = entry.to_dict(deep=True, stringify=False)
-
-    return Metadata(**entry_dict)
 
 
 def from_file(file_path: str) -> Metadata:
