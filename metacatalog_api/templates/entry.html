@@ -161,9 +161,9 @@
     <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Details</h4>
     <div class="mt-1 border-t border-gray-200">
         <dl class="divide-y divide-gray-200">
-            {% for stem, detail in entry.details.items() %}
+            {% for detail in entry.details %}
                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
-                    <dt class="text-sm font-medium leading-6 text-gray-900">{{ detail.name }} (stem: {{ stem }})</dt>
+                    <dt class="text-sm font-medium leading-6 text-gray-900">{{ detail.key }} (stem: {{ detail.stem }})</dt>
                     <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{detail.value}}</dd>
                 </div>
             {% endfor %}

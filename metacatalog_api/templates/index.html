@@ -36,7 +36,7 @@
         <main>
             <div id="map-content" class="mx-auto" hx-trigger="load" hx-get="/locations.html" hx-swap="innerHTML">
             </div>
-            <form hx-get="/entries.html" hx-trigger="change" hx-target="#main-content" hx-swap="innerHTML">
+            <form hx-get="/entries.html" hx-trigger="submit, input from:#search delay:800ms" hx-target="#main-content" hx-swap="innerHTML">
                 <input 
                     type="text" name="search" id="search" placeholder="Search for data" 
                     class="shadow appearance-none border rounded w-96 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
