@@ -16,7 +16,7 @@
     </style>
     <script type="text/javascript">
         var map = L.map('map').setView([51.505, -0.09], 13);
-        varEntryLayer = null;
+        var entryLayer = null;
 
         // add openstreetmap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -24,13 +24,32 @@
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
 
-        // add the geojson layer
-        fetch('/locations.json')
-            .then(response =>  response.json())
-            .then(data => {
-                entryLayer = L.geoJSON(data).addTo(map);
-                map.fitBounds(entryLayer.getBounds());
-            });
+        // create a function to update the entry layer
+        function updateEntryLayer(search =null, ids =null) {
+            // build params
+            const params = new URLSearchParams();
+            if (search) {
+                params.append('search', search);
+            }
+            if (ids) {
+                params.append('ids', ids);
+            }
+            const url = `/locations.json?${params}`
+            console.log(url);
+
+            fetch(url)
+                .then(response =>  response.json())
+                .then(data => {
+                    if (entryLayer) {
+                        map.removeLayer(entryLayer);
+                    }
+                    entryLayer = L.geoJSON(data).addTo(map);
+                    map.fitBounds(entryLayer.getBounds());
+                });
+        }
+        
+        // update the entry layer
+        updateEntryLayer();
         
     </script>
 </div>
