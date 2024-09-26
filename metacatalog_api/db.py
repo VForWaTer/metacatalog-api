@@ -1,0 +1,108 @@
+from typing import List, Dict
+from pathlib import Path
+
+from models import Author, Metadata
+from psycopg import Cursor
+
+SQL_DIR = Path(__file__).parent / "sql"
+
+# helper function to load sql files
+def load_sql(file_name: str) -> str:
+    path = Path(file_name)
+    if not path.exists():
+        path = SQL_DIR / file_name
+    
+    with open(path, 'r') as f:
+        return f.read()
+
+def get_entries(session: Cursor, limit: int = None, offset: int = None, filter: Dict[str, str] = {}) -> List[Metadata]:
+    # build the filter
+    if len(filter.keys()) > 0:
+        expr = []
+        # handle whitespaces
+        for col, val in filter.items():
+            if '*' in val:
+                val = val.replace('*', '%')
+            if '%' in val:
+                expr.append(f"{col}  LIKE '{val}'")
+            else:
+                expr.append(f"{col}='{val}'")
+        # build the filter
+        filt = " WHERE " + " AND ".join(expr)
+    else:
+        filt = ""
+    
+    # handle offset and limit
+    lim = f" LIMIT {limit} " if limit is not None else ""
+    off = f" OFFSET {offset} " if offset is not None else ""
+
+    # get the sql for the query
+    sql = load_sql("get_entries.sql").format(filter=filt, limit=lim, offset=off)
+
+    # execute the query
+    results = [r for r in session.execute(sql).fetchall()]
+
+    return [Metadata(**result) for result in results]
+
+
+def get_entries_by_id(session: Cursor, entry_ids: int | List[int], limit: int = None, offset: int = None) -> List[Metadata]:
+    if isinstance(entry_ids, int):
+        entry_ids = [entry_ids]
+
+    # build the filter
+    filt = f"WHERE entries.id IN ({', '.join([str(e) for e in entry_ids])})"
+
+    # handle offset and limit
+    lim = f" LIMIT {limit} " if limit is not None else ""
+    off = f" OFFSET {offset} " if offset is not None else ""
+    
+    # get the sql for the query
+    sql = load_sql("get_entries.sql").format(filter=filt, limit=lim, offset=off)
+
+    # execute the query
+    results = [r for r in session.execute(sql).fetchall()]
+
+    return [Metadata(**result) for result in results]
+
+
+def search_entries(session: Cursor, search: str, limit: int = None, offset: int = None) -> List[Metadata]:
+    # build the limit and offset
+    lim = f" LIMIT {limit} " if limit is not None else ""
+    off = f" OFFSET {offset} " if offset is not None else ""
+
+    # get the sql for the query
+    sql = load_sql("search_entries.sql").format(prompt=search, limit=lim, offset=off)
+
+    # execute the query
+    search_results = [r['search_meta'] for r in session.execute(sql).fetchall()]
+
+    # get the entries by the searched ids
+    results = get_entries_by_id(session=session, entry_ids=[r["id"] for r in search_results])
+
+    return results
+
+
+
+def get_authors(session: Cursor, search: str = None) -> List[Author]:
+    # build the filter
+    filt = ""
+    if search is not None:
+        filt = f"WHERE last_name LIKE {search} OR first_name LIKE {search} OR organisation_name LIKE {search}"
+    
+    # build the basic query
+    sql = load_sql("get_authors.sql").format(filter=filt)
+
+    # execute the query
+    results = session.execute(sql).all()
+
+    return [Author(**result) for result in results]
+
+
+def get_entry_authors(session: Cursor, entry_id: int) -> List[Author]:
+    # build the query
+    sql = load_sql("get_entry_authors.sql").format(entry_id=entry_id)
+
+    # execute the query
+    results = session.execute(sql).all()
+
+    return [Author(**result) for result in results]

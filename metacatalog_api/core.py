@@ -1,16 +1,27 @@
+from typing import List
 import os
 from pathlib import Path
+from contextlib import contextmanager
 
-from metacatalog import api
-from models import Metadata, from_entry
+import psycopg
+import psycopg.rows
+from models import Metadata
 from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
+
+import db
 
 
 load_dotenv()
 
 METACATALOG_URI = os.getenv("METACATALOG_URI", 'postgresql://metacatalog:metacatalog@localhost:5432/metacatalog')
 SQL_DIR = Path(__file__).parent / "sql"
+
+@contextmanager
+def connect():
+    with psycopg.connect(METACATALOG_URI, autocommit=True) as con:
+        with con.cursor(row_factory=psycopg.rows.dict_row) as cur:
+            yield cur
 
 # helper function to load sql files
 def load_sql(file_name: str) -> str:
@@ -22,25 +33,20 @@ def load_sql(file_name: str) -> str:
         return f.read()
         
 
-def entries(offset: int = 0, limit: int = 100, filter: dict = {}) -> list[Metadata]:
-    # get a database session
-    session = api.connect_database(METACATALOG_URI)
-
-    # get the sql for the query
-    sql = api.find_entry(session, return_iterator=True, **filter).offset(offset).limit(limit)
-
-    # execute the query
-    results = [from_entry(entry) for entry in sql]
-
-    # close the session and return the results
-    session.close()
+def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  search: str = None, filter: dict = {}) -> list[Metadata]:
+    # check if we filter or search
+    with connect() as session:
+        if search is not None:
+            results = db.search_entries(session, search, limit=limit, offset=offset)
+        elif ids is not None:
+            results = db.get_entries_by_id(session, ids, limit=limit, offset=offset)
+        else:
+            results = db.get_entries(session, limit=limit, offset=offset, filter=filter)
 
     return results
 
-def entries_locations(filter: dict = {}) -> FeatureCollectionModel:
-    # get a database session
-    session = api.connect_database(METACATALOG_URI)
 
+def entries_locations(filter: dict = {}) -> FeatureCollectionModel:
     # build the filter
     filt = ""
     if len(filter.keys()) > 0:
@@ -50,10 +56,8 @@ def entries_locations(filter: dict = {}) -> FeatureCollectionModel:
     sql = load_sql("entries_locations.sql").format(filter=filt)
 
     # execute the query
-    result = session.execute(sql).one() 
-
-    # close the session and return the results
-    session.close()
+    with connect() as session:
+        result = session.execute(sql).fetchone() 
 
     return result["json_build_object"]
 
