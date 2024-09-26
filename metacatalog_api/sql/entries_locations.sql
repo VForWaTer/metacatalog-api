@@ -10,7 +10,9 @@ with geometries as (
     LEFT JOIN datasources ON datasources.id=datasource_id
     LEFT JOIN spatial_scales ON spatial_scales.id=datasources.spatial_scale_id
     LEFT JOIN variables ON variables.id=entries.variable_id
-    WHERE spatial_scales.extent IS NOT NULL OR entries.location IS NOT NULL {filter}
+    WHERE ( spatial_scales.extent IS NOT NULL OR entries.location IS NOT NULL )
+    {filter}
+    {limit} {offset}
 )
 SELECT json_build_object(
     'type', 'FeatureCollection',
