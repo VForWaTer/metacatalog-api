@@ -1,5 +1,7 @@
 from typing import Literal, Optional, List
 from pathlib import Path
+from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
@@ -7,12 +9,29 @@ from pydantic_geojson import FeatureCollectionModel
 
 import core
 
+logger = logging.getLogger('uvicorn.error')
+
+# before we initialize the app, we check that the database is installed and up to date
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # check if the entries table can be found in the database
+    with core.connect() as session:
+        if not core.db.check_installed(session):
+            logger.info("Database not installed, installing...")
+            core.db.install(session, populate_defaults=True)
+            logger.info("Database installed.")
+
+    # now we yield the application
+    yield
+
+    # here we can app tear down code - i.e. a log message
+
 # define the format literal
 FMT = Optional[Literal['html', 'json']]
 
 
 # build the base app
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # add the templates
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -48,7 +67,7 @@ def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int =
 
 @app.get('/entries/{id}')
 @app.get('/entries/{id}.{fmt}')
-def get_entry(id: int, request: Request, fmt: FMT = None):
+def get_entry(id: int, request: Request, fmt: Literal['xml'] | FMT = None):
     # call the function
     entries = core.entries(ids=id)
     
@@ -58,6 +77,8 @@ def get_entry(id: int, request: Request, fmt: FMT = None):
     # check if we should return html
     if fmt == 'html':
         return templates.TemplateResponse(request=request, name="entry.html", context={"entry": entries[0]})
+    elif fmt == 'xml':
+        return templates.TemplateResponse(request=request, name="entry.xml", context={"entry": entries[0]}, media_type='application/xml')
     return entries[0]
 
 
