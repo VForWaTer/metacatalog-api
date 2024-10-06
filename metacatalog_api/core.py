@@ -18,20 +18,11 @@ METACATALOG_URI = os.getenv("METACATALOG_URI", 'postgresql://metacatalog:metacat
 SQL_DIR = Path(__file__).parent / "sql"
 
 @contextmanager
-def connect():
-    with psycopg.connect(METACATALOG_URI, autocommit=True) as con:
+def connect(autocommit: bool = True):
+    with psycopg.connect(METACATALOG_URI, autocommit=autocommit) as con:
         with con.cursor(row_factory=psycopg.rows.dict_row) as cur:
             yield cur
 
-# helper function to load sql files
-def load_sql(file_name: str) -> str:
-    path = Path(file_name)
-    if not path.exists():
-        path = SQL_DIR / file_name
-    
-    with open(path, 'r') as f:
-        return f.read()
-        
 
 def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  search: str = None, filter: dict = {}) -> list[Metadata]:
     # check if we filter or search
