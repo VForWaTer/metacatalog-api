@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Metadata>
+    <Title>{{ entry.title }}</Title>
+    <Version>{{ entry.version }}</Version>
+    <ExternalId>{{ entry.external_id }}</ExternalId>
+    <Abstract>
+        {{ entry.abstract }}
+    </Abstract>
+    <License link="{{ entry.license.link }}">
+        {{ entry.license.summary }}
+    </License>
+</Metadata>

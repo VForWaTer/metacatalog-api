@@ -1,0 +1,15 @@
+<div id="action-area" class="mt-1 w-full content-center">
+    <form 
+        class="w-fit mx-auto"
+        hx-get="/entries.html" 
+        hx-trigger="submit, input from:#search delay:800ms"
+        hx-target="#main-content" 
+        hx-swap="innerHTML"
+        hx-on::after-request="updateEntryLayer(document.getElementById('search').value)"
+    >
+        <input 
+            type="text" name="search" id="search" placeholder="Search for data" 
+            class="shadow appearance-none border rounded w-96 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
+        />
+    </form>
+</div>
