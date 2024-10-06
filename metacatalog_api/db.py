@@ -16,6 +16,28 @@ def load_sql(file_name: str) -> str:
     with open(path, 'r') as f:
         return f.read()
 
+
+def install(cursor: Cursor, schema: str = 'public', populate_defaults: bool = True) -> None:
+    # get the install script
+    install_sql = load_sql(SQL_DIR / 'maintain' /'install.sql').format(schema=schema)
+
+    # execute the install script
+    cursor.execute(install_sql)
+
+    # populate the defaults
+    if populate_defaults:
+        pupulate_sql = load_sql(SQL_DIR / 'maintain' / 'defaults.sql').replace('{schema}', schema)
+        cursor.execute(pupulate_sql)
+
+
+def check_installed(cursor: Cursor, schema: str = 'public') -> bool:
+    try:
+        info = cursor.execute(f"SELECT * FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = 'entries'").fetchone()
+        return info is not None
+    except Exception:
+        return False
+    
+
 def get_entries(session: Cursor, limit: int = None, offset: int = None, filter: Dict[str, str] = {}) -> List[Metadata]:
     # build the filter
     if len(filter.keys()) > 0:
