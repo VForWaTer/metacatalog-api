@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: metacatalog
+    expose:
+      - 5432
+    ports:
+      - 5433:5432
+    volumes:
+      - ../../KIT/projects/tool_images/tool_vforwater_loader/data/pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}'"]
+      interval: 1s
+      timeout: 1s
+      retries: 5
+  
+  api:
+    build: .
+    environment:
+      METACATALOG_URI: postgresql://postgres:postgres@db:5432/metacatalog
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - 8000:8000
+    volumes:
+      - ./metacatalog_api:/app/metacatalog_api
