@@ -1,0 +1,15 @@
+{% if variant == 'select' %}
+<div class="flex items-center space-x-4">
+    <label for="license_id" class="block text-sm font-medium text-gray-700">License</label>
+    <select name="license_id" id="license_id" hx-get="/licenses.html" hx-trigger="change, load" hx-target="#license-details" hx-swap="innerHTML" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+        {% for license in licenses %}
+        <option value="{{license.id}}">{{license.short_title}}</option>
+        {% endfor %}
+    </select>
+</div>
+<div id="license-details"></div>
+{% else %}
+LIST
+{% endif %}
+<script src="https://unpkg.com/htmx.org@2.0.2"></script>
+<script src="https://cdn.tailwindcss.com"></script>

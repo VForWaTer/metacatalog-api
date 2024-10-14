@@ -1,0 +1,41 @@
+<input type="hidden" name="license.by_attribution" value="{{ 'true' if license.by_attribution else 'false' }}">
+<input type="hidden" name="license.share_alike" value="{{ 'true' if license.share_alike else 'false' }}">
+<input type="hidden" name="license.commercial_use" value="{{ 'true' if license.commercial_use else 'false' }}">
+<input type="hidden" name="license.short_title" value="{{ license.short_title }}">
+<input type="hidden" name="license.title" value="{{ license.title }}">
+<input type="hidden" name="license.summary" value="{{ license.summary }}">
+<input type="hidden" name="license.link" value="{{ license.link }}">
+
+<div class="container p-4">
+    <div class="max-w-lg rounded overflow-hidden shadow-lg bg-white">
+        <div class="px-6 py-4">
+            <div class="text-gray-600 text-lg mb-2">{{ license.short_title }}</div>
+            {% if license.link %}
+                <a href="{{ license.link }}" class="block hover:text-gray-700" target="_blank">      
+            {% endif %}
+                    <div class="font-bold text-xl mb-2">{{ license.title }}</div>
+            {% if license.link %}
+                </a>
+            {% endif %}
+            <p class="text-gray-700 text-base">
+                <div class="grid grid-cols-2 gap-4">
+                    <label for="" class="py-2 px-4 border-b">Attribution</label>
+                    <div class="py-2 px-4 border-b">
+                        <input id="by_attribution" name="by_attribution" type="checkbox" disabled {{ 'checked' if license.by_attribution else '' }}>
+                    </div>
+                    <div class="py-2 px-4 border-b">Share Alike</div>
+                    <div class="py-2 px-4 border-b">
+                        <input type="checkbox" disabled {{ 'checked' if license.share_alike else '' }}>
+                    </div>
+                    <div class="py-2 px-4 border-b">Commercial Use</div>
+                    <div class="py-2 px-4 border-b">
+                        <input type="checkbox" disabled  'checked' if license.commercial_use else '' }}>
+                    </div>
+
+                    <div class="col-span-2 py-2 px-4 border-b text-gray-700 h-24 overflow-auto">{{ license.summary }}</div>
+                </div>
+            </p>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.tailwindcss.com"></script>
