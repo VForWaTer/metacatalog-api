@@ -1,0 +1,8 @@
+fastapi
+pydantic
+Jinja2
+python-dotenv
+uvicorn
+psycopg[binary]
+pydantic-geojson
+python-multipart
