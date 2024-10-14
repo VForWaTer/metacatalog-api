@@ -3360,7 +3360,7 @@ INSERT INTO {schema}.units VALUES (5, 'kelvin', 'K', 'K');
 INSERT INTO {schema}.units VALUES (6, 'mole', 'mol', 'mol');
 INSERT INTO {schema}.units VALUES (7, 'candela', 'cd', 'cd');
 INSERT INTO {schema}.units VALUES (8, 'radian', 'rad', '1');
-INSERT INTO {schema}.units VALUES (9, 'degree', 'deg', '1');
+INSERT INTO {schema}.units VALUES (9, 'degree', 'deg', '0.0174533*rad');
 INSERT INTO {schema}.units VALUES (10, 'hertz', 'Hz', 's^-1');
 INSERT INTO {schema}.units VALUES (11, 'newton', 'N', 'kg*m*s^-2');
 INSERT INTO {schema}.units VALUES (12, 'pascal', 'Pa', 'kg*m^-1*s^-2');
@@ -3386,7 +3386,6 @@ INSERT INTO {schema}.units VALUES (106, 'mm per second', 'mm/s', '10^-3*m**s^-1'
 INSERT INTO {schema}.units VALUES (107, 'meter per second', 'm/s', 'm*s^-1');
 INSERT INTO {schema}.units VALUES (108, 'cubicmeter per second', 'm3/s', 'm^3*s^-1');
 INSERT INTO {schema}.units VALUES (109, 'liter per second', 'l/s', '10^-3*m^3*s^-1');
-INSERT INTO {schema}.units VALUES (110, 'degree', 'deg.', '0.0174533*rad');
 INSERT INTO {schema}.units VALUES (112, 'percent', '%', '10^-2');
 INSERT INTO {schema}.units VALUES (113, 'cm3/cm3', 'cm3/cm3', '1');
 INSERT INTO {schema}.units VALUES (114, 'kg/kg', 'kg/kg', '1');

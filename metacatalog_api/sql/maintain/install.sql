@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS {schema}.units
     name character varying(64) COLLATE pg_catalog."default" NOT NULL,
     symbol character varying(12) COLLATE pg_catalog."default" NOT NULL,
     si character varying COLLATE pg_catalog."default",
-    CONSTRAINT units_pkey PRIMARY KEY (id)
+    CONSTRAINT units_pkey PRIMARY KEY (id),
+    CONSTRAINT units_name_key UNIQUE (name)
 );
 
 ALTER SEQUENCE units_id_seq OWNED BY units.id;
@@ -90,6 +91,7 @@ CREATE TABLE IF NOT EXISTS {schema}.variables
     unit_id integer NOT NULL,
     keyword_id integer,
     CONSTRAINT variables_pkey PRIMARY KEY (id),
+    CONSTRAINT variables_name_key UNIQUE (name),
     CONSTRAINT variables_keyword_id_fkey FOREIGN KEY (keyword_id)
         REFERENCES {schema}.keywords (id) MATCH SIMPLE
         ON UPDATE NO ACTION
@@ -122,6 +124,8 @@ CREATE TABLE IF NOT EXISTS {schema}.licenses
     share_alike boolean NOT NULL,
     commercial_use boolean NOT NULL,
     CONSTRAINT licenses_pkey PRIMARY KEY (id),
+    CONSTRAINT license_name_key UNIQUE (short_title),
+    CONSTRAINT license_title_key UNIQUE (title),
     CONSTRAINT licenses_check CHECK (NOT (full_text IS NULL AND link IS NULL))
 );
 
@@ -144,6 +148,7 @@ CREATE TABLE IF NOT EXISTS {schema}.datatypes
     title character varying COLLATE pg_catalog."default" NOT NULL,
     description character varying COLLATE pg_catalog."default",
     CONSTRAINT datatypes_pkey PRIMARY KEY (id),
+    CONSTRAINT datatypes_name_key UNIQUE (name),
     CONSTRAINT datatypes_parent_id_fkey FOREIGN KEY (parent_id)
         REFERENCES {schema}.datatypes (id) MATCH SIMPLE
         ON UPDATE NO ACTION
@@ -167,7 +172,8 @@ CREATE TABLE IF NOT EXISTS {schema}.datasource_types
     name character varying(64) COLLATE pg_catalog."default" NOT NULL,
     title character varying COLLATE pg_catalog."default" NOT NULL,
     description character varying COLLATE pg_catalog."default",
-    CONSTRAINT datasource_types_pkey PRIMARY KEY (id)
+    CONSTRAINT datasource_types_pkey PRIMARY KEY (id),
+    CONSTRAINT datasource_types_name_key UNIQUE (name)
 );
 
 ALTER SEQUENCE datasource_types_id_seq OWNED BY datasource_types.id;
@@ -274,7 +280,8 @@ CREATE TABLE IF NOT EXISTS {schema}.person_roles
     id integer NOT NULL DEFAULT nextval('person_roles_id_seq'::regclass),
     name character varying(64) COLLATE pg_catalog."default" NOT NULL,
     description character varying COLLATE pg_catalog."default",
-    CONSTRAINT person_roles_pkey PRIMARY KEY (id)
+    CONSTRAINT person_roles_pkey PRIMARY KEY (id),
+    CONSTRAINT person_roles_name_key UNIQUE (name)
 );
 
 ALTER SEQUENCE person_roles_id_seq OWNED BY person_roles.id;
@@ -299,7 +306,8 @@ CREATE TABLE IF NOT EXISTS {schema}.persons
     affiliation character varying(1024) COLLATE pg_catalog."default",
     attribution character varying(1024) COLLATE pg_catalog."default",
     CONSTRAINT persons_pkey PRIMARY KEY (id),
-    CONSTRAINT persons_check CHECK (NOT (last_name IS NULL AND organisation_name IS NULL))
+    CONSTRAINT persons_check CHECK (NOT (last_name IS NULL AND organisation_name IS NULL)),
+    CONSTRAINT persons_uuid_key UNIQUE (uuid)
 );
 
 ALTER SEQUENCE persons_id_seq OWNED BY persons.id;

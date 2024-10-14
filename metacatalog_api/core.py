@@ -5,17 +5,20 @@ from contextlib import contextmanager
 
 import psycopg
 import psycopg.rows
-from models import Metadata
+from metacatalog_api.models import Metadata, Author
 from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
 
-import db
+from metacatalog_api import db
 
 
 load_dotenv()
 
-METACATALOG_URI = os.getenv("METACATALOG_URI", 'postgresql://metacatalog:metacatalog@localhost:5432/metacatalog')
+METACATALOG_URI = os.environ.get("METACATALOG_URI", 'postgresql://metacatalog:metacatalog@localhost:5432/metacatalog')
 SQL_DIR = Path(__file__).parent / "sql"
+
+#METACATALOG_URI="postgresql://postgres:postgres@localhost:5433/metacatalog"
+print(METACATALOG_URI)
 
 @contextmanager
 def connect(autocommit: bool = True):
@@ -67,3 +70,25 @@ def entries_locations(ids: int | List[int] = None, limit: int = None, offset: in
         result = db.get_entries_locations(session, ids=ids, limit=limit, offset=offset)
     
     return result
+
+def licenses(id: int = None, offset: int = None, limit: int = None):
+    with connect() as session:
+        if id is not None:
+            result = db.get_license_by_id(session, id=id)
+        else:
+            result = db.get_licenses(session, limit=limit, offset=offset)
+    
+    return result
+
+def authors(id: int = None, entry_id: int = None, search: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[Author]:
+    with connect() as session:
+        # if an author_id is given, we return only the author of that id
+        if id is not None:
+            authors = db.get_author_by_id(session, id=id)
+        # if an entry_id is given, we return only the authors of that entry
+        elif entry_id is not None:
+            authors = db.get_authors_by_entry(session, entry_id=entry_id)
+        else:
+            authors = db.get_authors(session, search=search, exclude_ids=exclude_ids, limit=limit, offset=offset)
+    
+    return authors
