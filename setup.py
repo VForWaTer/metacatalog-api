@@ -17,7 +17,7 @@ setup(
     description='FastAPI backend for managing a Metacatalog instance',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/yourusername/metacatalog-api',
+    url='https://github.com/vforwater/metacatalog-api',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',

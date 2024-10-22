@@ -1,0 +1,66 @@
+<div class="author-card">
+{% if author %}
+    <input type="hidden" name="author.first_name" value="{{author.first_name}}">
+    <input type="hidden" name="author.last_name" value="{{author.last_name}}">
+    <input type="hidden" name="author.organisation_name" value="{{author.organisation_name}}">
+    <input type="hidden" name="author.organisation_abbrev" value="{{author.organisation_abbrev}}">
+    <input type="hidden" name="author.affiliation" value="{{author.affiliation}}">
+    <input type="hidden" name="author.is_organisation" value="{{'true' if author.is_organisation else 'false'}}">
+    <div  class="grid grid-cols-2 gap-4 mt-8">
+        <input type="hidden" name="exclude_ids" value="{{author.id}}">
+        <div class="flex flex-col py-2 px-4">
+            <label for="first_name">First Name</label>
+            <input type="text" name="author.first_name" id="first_name" value="{{author.first_name}}" class="border-b" {{ 'disabled' if variant == 'fixed' else ''}}>
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="last_name">Last Name</label>
+            <input type="text" name="author.last_name" id="last_name" value="{{author.last_name}}" class="border-b" {{ 'disabled' if variant == 'fixed' else ''}}>
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="organisation_name">Organisation Name</label>
+            <input type="text" name="author.organisation_name" id="organisation_name" value="{{author.organisation_name}}" class="border-b" {{ 'disabled' if variant == 'fixed' else ''}}>
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="organisation_abbrev">Organisation Abbreviation</label>
+            <input type="text" name="author.organisation_abbrev" id="organisation_abbrev" value="{{author.organisation_abbrev}}" class="border-b" {{ 'disabled' if variant == 'fixed' else ''}}>
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="affiliation">Affiliation</label>
+            <input type="text" name="author.affiliation" id="affiliation" value="{{author.affiliation}}" class="border-b" {{ 'disabled' if variant == 'fixed' else ''}}>
+        </div>
+        <div class="flex items-center py-2 px-4">
+            <label for="is_organisation" class="mr-2">Is Organisation?</label>
+            <input type="checkbox" name="author.is_organisation" id="is_organisation" class="border-b" {{'checked' if author.is_organisation else ''}} {{ 'disabled' if variant == 'fixed' else ''}}>
+        </div>
+        <div class="border mt-4 col-span-2"></div>
+    </div>
+{% else %}
+    <div class="grid grid-cols-2 gap-4 mt-8">
+        <div class="flex flex-col py-2 px-4">
+            <label for="first_name">First Name</label>
+            <input type="text" name="author.first_name" id="first_name" placeholder="First Name" class="border-b">
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="last_name">Last Name</label>
+            <input type="text" name="author.last_name" id="last_name" placeholder="Last Name" class="border-b">
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="organisation_name">Organisation Name</label>
+            <input type="text" name="author.organisation_name" id="organisation_name" placeholder="Organisation Name" class="border-b" >
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="organisation_abbrev">Organisation Abbreviation</label>
+            <input type="text" name="author.organisation_abbrev" id="organisation_abbrev" placeholder="Organisation Abbreviation" class="border-b">
+        </div>
+        <div class="flex flex-col py-2 px-4">
+            <label for="affiliation">Affiliation</label>
+            <input type="text" name="author.affiliation" id="affiliation" placeholder="Affiliation" class="border-b">
+        </div>
+        <div class="flex items-center py-2 px-4">
+            <label for="is_organisation" class="mr-2">Is Organisation?</label>
+            <input type="checkbox" name="author.is_organisation" id="is_organisation" class="border-b">
+        </div>
+        <div class="border mt-4 col-span-2"></div>
+    </div>
+{% endif %}
+</div>

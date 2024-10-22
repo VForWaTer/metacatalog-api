@@ -1,0 +1,150 @@
+<div x-data="authorTable()">
+    <div class="flex items-center">
+        <select 
+            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            x-model="selectedAuthorId"
+            @change="addExistingAuthor($event.target.value)"
+        >
+            <option value="none">Select an existing Author</option>
+            <template x-for="author in existingAuthors.filter(author => !authors.some(a => a.id === author.id))" :key="author.id">
+                <option :value="author.id" x-text="getAuthorDisplayName(author)"></option>
+            </template>
+        </select>  
+    </div>
+
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name/Organization</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Affiliation</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            <template x-for="(author, index) in authors" :key="index">
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span x-text="author.is_organisation ? author.organisation_name + (author.organisation_abbrev ? ' (' + author.organisation_abbrev + ')' : '') : author.first_name + ' ' + author.last_name + (author.organisation_abbrev ? ' (' + author.organisation_abbrev + ')' : '')"></span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap" x-text="author.affiliation || 'No affiliation provided'"></td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button type="button" @click="moveUp(index)" class="text-indigo-600 hover:text-indigo-900 mr-2">↑</button>
+                        <button type="button" @click="moveDown(index)" class="text-indigo-600 hover:text-indigo-900 mr-2">↓</button>
+                        <button type="button" @click="removeAuthor(index)" class="text-red-600 hover:text-red-900">Remove</button>
+                    </td>
+                    <td>
+                        <input type="hidden" :name="`authors.${index + 1}.first_name`" :value="author.first_name">
+                        <input type="hidden" :name="`authors.${index + 1}.last_name`" :value="author.last_name">
+                        <input type="hidden" :name="`authors.${index + 1}.organisation_name`" :value="author.organisation_name">
+                        <input type="hidden" :name="`authors.${index + 1}.organisation_abbrev`" :value="author.organisation_abbrev">
+                        <input type="hidden" :name="`authors.${index + 1}.affiliation`" :value="author.affiliation">
+                        <input type="hidden" :name="`authors.${index + 1}.is_organisation`" :value="author.is_organisation">
+                        <input type="hidden" :name="`authors.${index + 1}.id`" :value="author.id">
+                    </td>
+                </tr>
+            </template>
+        </tbody>
+    </table>
+
+    <div class="mt-4">
+        <input x-model="newAuthor.first_name" placeholder="First Name" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+        <input x-model="newAuthor.last_name" placeholder="Last Name" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+        <input x-model="newAuthor.organisation_name" placeholder="Organization Name" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+        <input x-model="newAuthor.organisation_abbrev" placeholder="Organization Abbreviation" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+        <input x-model="newAuthor.affiliation" placeholder="Affiliation" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+        
+        <label class="inline-flex items-center mr-2">
+            <input type="checkbox" x-model="newAuthor.is_organisation" class="form-checkbox h-5 w-5 text-blue-600">
+            <span class="ml-2 text-gray-700">Is Organization</span>
+        </label>
+        
+        <button type="button" @click="addAuthor" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Add Author</button>
+    </div>
+
+    <!-- <div class="mt-4">
+        <h3>Debug Info:</h3>
+        <pre x-text="JSON.stringify({authors: authors}, null, 2)"></pre>
+    </div> -->
+</div>
+
+<script>
+function authorTable() {
+    return {
+        existingAuthors: [],
+        authors: [], 
+        newAuthor: { first_name: '', last_name: '', organisation_name: '', organisation_abbrev: '', affiliation: '', is_organisation: false },
+        selectedAuthorId: 'none',
+        isLoading: true,
+
+        init() {
+            this.fetchExistingAuthors();
+        },
+
+        async fetchExistingAuthors() {
+            try {
+                const response = await fetch('/authors.json');
+                const data = await response.json();
+                this.existingAuthors = data;
+            } catch (err) {
+                console.error('Error fetching authors:', err);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        addExistingAuthor(authorId) {
+            if (authorId !== 'none') {
+                const author = this.existingAuthors.find(a => a.id === parseInt(authorId));
+                if (author && !this.authors.some(a => a.id === author.id)) {
+                    this.authors.push({...author});
+                    this.selectedAuthorId = 'none';
+                }
+            }
+        },
+
+        addAuthor() {
+            if ((this.newAuthor.first_name && this.newAuthor.last_name) || this.newAuthor.organisation_name) {
+                this.authors.push({...this.newAuthor, id: Date.now()}); // Use timestamp as temporary id
+                this.newAuthor = { first_name: '', last_name: '', organisation_name: '', organisation_abbrev: '', affiliation: '', is_organisation: false };
+            }
+        },
+
+        removeAuthor(index) {
+            this.authors.splice(index, 1);
+        },
+
+        getAuthorDisplayName(author) {
+            if (author.is_organisation) {
+                return `${author.organisation_name} ${author.organisation_abbrev ? '(' + author.organisation_abbrev + ')' : ''}`;
+            } else {
+                return `${author.first_name} ${author.last_name} ${author.organisation_abbrev ? '(' + author.organisation_abbrev + ')' : ''}`;
+            }
+        },
+
+        moveUp(index) {
+            if (index > 0) {
+                const temp = this.authors[index];
+                this.authors[index] = this.authors[index - 1];
+                this.authors[index - 1] = temp;
+            }
+        },
+
+        moveDown(index) {
+            if (index < this.authors.length - 1) {
+                const temp = this.authors[index];
+                this.authors[index] = this.authors[index + 1];
+                this.authors[index + 1] = temp;
+            }
+        }
+    }
+}
+</script>
+
+
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+{% endif %}

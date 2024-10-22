@@ -149,11 +149,21 @@ def get_authors(request: Request, fmt: FMT = None, entry_id: int = None, author_
             )
         return templates.TemplateResponse(
             request=request, 
-            name="authors_form.html", 
+            name="authors.html", 
             context={"authors": authors, 'variant': 'select' if entry_id is None else 'list', 'target': target}
         )
     else:
-        return authors
+        return [author.model_dump() for author in authors]
+
+
+@app.get('/authors/{author_id}')
+@app.get('/authors/{author_id}.json')
+def get_author(author_id: int, request: Request):
+    try:
+        author = core.authors(id=author_id)
+        return author
+    except Exception as e:
+        return HTTPException(status_code=404, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
