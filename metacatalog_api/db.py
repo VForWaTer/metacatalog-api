@@ -2,7 +2,7 @@ from typing import List, Dict, Optional
 from pathlib import Path
 from uuid import uuid4
 
-from models import Author, Metadata, License
+from models import Author, Metadata, License, Variable
 from psycopg import Cursor
 from pydantic_geojson import FeatureCollectionModel
 
@@ -174,6 +174,42 @@ def get_author_by_id(session: Cursor, id: int) -> Author:
         return None
     else:
         return Author(**author)
+
+def get_variables(session: Cursor, limit: int = None, offset: int = None) -> List[Variable]:
+    # build the filter
+    filt = ""
+    off = f" OFFSET {offset} " if offset is not None else ""
+    lim = f" LIMIT {limit} " if limit is not None else ""
+    
+    # build the basic query
+    sql = load_sql('get_variables.sql').format(filter=filt, offset=off, limit=lim)
+
+    # execute the query
+    results = session.execute(sql).fetchall()
+    
+    # build the model
+    try:
+        variables = [Variable(**result) for result in results]
+    except Exception as e:
+        print(e)
+        raise e
+    
+    return variables
+    
+
+def get_available_variables(session: Cursor, limit: int = None, offset: int = None) -> List[Variable]:
+    # build the filter
+    filt = ""
+    off = f" OFFSET {offset} " if offset is not None else ""
+    lim = f" LIMIT {limit} " if limit is not None else ""
+
+    # build the basic query
+    sql = load_sql('get_available_variables.sql').format(filter=filt, offset=off, limit=lim)
+
+    # execute the query
+    results = session.execute(sql).fetchall()
+
+    return [Variable(**result) for result in results]
 
 def get_licenses(session: Cursor, limit: int = None, offset: int = None) -> List[License]:
     # build the filter

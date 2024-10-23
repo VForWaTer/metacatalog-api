@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 import psycopg
 import psycopg.rows
-from metacatalog_api.models import Metadata, Author
+from metacatalog_api.models import Metadata, Author, Variable
 from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
 
@@ -71,6 +71,7 @@ def entries_locations(ids: int | List[int] = None, limit: int = None, offset: in
     
     return result
 
+
 def licenses(id: int = None, offset: int = None, limit: int = None):
     with connect() as session:
         if id is not None:
@@ -79,6 +80,7 @@ def licenses(id: int = None, offset: int = None, limit: int = None):
             result = db.get_licenses(session, limit=limit, offset=offset)
     
     return result
+
 
 def authors(id: int = None, entry_id: int = None, search: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[Author]:
     with connect() as session:
@@ -92,3 +94,13 @@ def authors(id: int = None, entry_id: int = None, search: str = None, exclude_id
             authors = db.get_authors(session, search=search, exclude_ids=exclude_ids, limit=limit, offset=offset)
     
     return authors
+
+
+def variables(id: int = None, only_available: bool = False, offset: int = None, limit: int = None) -> List[Variable]:
+    with connect() as session:
+        if only_available:
+            variables = db.get_available_variables(session, limit=limit, offset=offset)
+        else:
+            variables = db.get_variables(session, limit=limit, offset=offset)
+    
+    return variables

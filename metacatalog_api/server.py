@@ -6,7 +6,6 @@ import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from fastapi.encoders import jsonable_encoder
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import core
@@ -164,6 +163,27 @@ def get_author(author_id: int, request: Request):
         return author
     except Exception as e:
         return HTTPException(status_code=404, detail=str(e))
+
+
+@app.get('/variables')
+@app.get('/variables.{fmt}')
+def get_variables(request: Request, fmt: FMT = None, offset: int = None, limit: int = None):
+    if fmt == 'html':
+        return templates.TemplateResponse(request=request, name="variables.html", context={})
+    try:
+        variables = core.variables(only_available=False, offset=offset, limit=limit)
+    except Exception as e:
+        return HTTPException(status_code=404, detail=str(e))
+    
+    if fmt == 'html':
+        return templates.TemplateResponse(
+            request=request, 
+            name="variables.html", 
+            context={"variables": variables}
+        )
+    else:
+        return variables
+
 
 if __name__ == "__main__":
     import uvicorn
