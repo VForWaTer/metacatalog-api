@@ -1,0 +1,86 @@
+<div x-data="variableDropdown()">
+    <div class="flex items-center space-x-4">
+        <label for="variable_id" class="block text-sm font-medium text-gray-700">Variable</label>
+        <select name="variable_id" id="variable_id" x-model="selectedId" @change="loadVariable($event.target.value)" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+            <option value="">Select a variable</option>
+            <template x-for="variable in variables" :key="variable.id">
+                <option :value="variable.id" x-text="variable.name"></option>
+            </template>
+        </select>
+    </div>
+    <template x-if="selectedId !== ''">
+        <div id="variable-details" class="mt-4">
+            <input type="hidden" name="variable.id" :value="selectedVariable.id" />
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variable</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr>
+                        <td class="px-6 py-4-whitespace-nowrap" x-text="`${selectedVariable.name} (${selectedVariable.symbol})`"></td>
+                        <td class="px-6 py-4 whitespace-nowrap" x-text="`${selectedVariable.unit.name} (${selectedVariable.unit.symbol})`"></td>
+                    </tr>
+                    <template x-if="selectedVariable.keyword">
+                        <tr>
+                            <td 
+                                colspan="2" 
+                                x-text="selectedVariable.keyword.thesaurusName.title" 
+                                class="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            ></td>
+                        </tr>
+                    </template>
+                    <template x-if="selectedVariable.keyword">
+                        <tr>
+                            <td colspan="2" class="px-6 py-4 font-xs whitespace-nowrap">
+                                <a :href="selectedVariable.keyword.thesaurusName.url" x-text="selectedVariable.keyword.path" target="_blank"></a>
+                            </td>
+                        </tr>
+                    </template>
+                    <template x-if="!selectedVariable.keyword">
+                        <tr>
+                            <td colspan="2" class="px-6 py-4">
+                                <i>No keyword provided.</i>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </template>
+    
+</div>
+
+<script>
+    function variableDropdown() {
+        return {
+            variables: [],
+            selectedVariable: null,
+            selectedId: '',
+            async init () {
+                const resp = await fetch('/variables.json');
+                const data = await resp.json();
+                this.variables = data;
+                console.log(data);
+            },
+            loadVariable (variableId) {
+                const variable = this.variables.find(v => v.id === parseInt(variableId));
+                if (variable) {
+                    this.selectedId = variable.id
+                    this.selectedVariable = variable;
+                } else {
+                    this.selectedId = '';
+                    this.selectedVariable = null;
+                }
+            }
+        };
+    }
+</script>
+
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+    <script src="//unpkg.com/alpinejs"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+{% endif %}

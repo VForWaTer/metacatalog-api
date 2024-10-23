@@ -1,5 +1,5 @@
 <form hx-post="/entries" hx-swap="afterbegin" >
-    <div x-data="{open: false}">
+    <div x-data="{open: true}">
         <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open">
             <h2 class="text-lg font-medium text-gray-700">Metadata</h2>
             <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -7,6 +7,7 @@
             </svg>
         </div>
         <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
+            <h3 class="text-lg font-semibold text-gray-800">General</h3>
             <div class="flex items-center space-x-4">
                 <label for="title" class="text-sm font-medium text-gray-700">Title</label>
                 <input type="text" name="title" id="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -19,16 +20,36 @@
                 <label for="abstract" class="text-sm font-medium text-gray-700">Abstract</label>
                 <textarea name="abstract" id="abstract" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4"></textarea>
             </div>
+
+            <h3 class="text-lg font-semibold text-gray-800">Variable</h3>
             <div class="flex flex-col space-y-2">
-                <div hx-get="/licenses.html" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="/variables.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
 
+            <h3 class="text-lg font-semibold text-gray-800">Authors</h3>
             <div class="flex flex-col space-y-2">
-                
                 <div hx-get="/authors.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
         </div>
     </div>
+
+    <div x-data="{open: false}">
+        <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open">
+            <h2 class="text-lg font-medium text-gray-700">License</h2>
+            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </div>
+        <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
+
+            <div class="flex flex-col space-y-2">
+                <div hx-get="/licenses.html" hx-swap="outerHTML" hx-trigger="load"></div>
+            </div>
+
+        </div>
+    </div>
+
+
     <!-- Add the submit button here -->
     <div class="mt-6 flex justify-end">
         <button type="submit" class="px-4 py-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
