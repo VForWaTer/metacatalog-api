@@ -184,6 +184,10 @@ def get_variables(request: Request, fmt: FMT = None, offset: int = None, limit: 
     else:
         return variables
 
+@app.get('/details/new.html')
+def new_details(request: Request):
+    return templates.TemplateResponse(request=request, name="details.html", context={})
+
 
 if __name__ == "__main__":
     import uvicorn

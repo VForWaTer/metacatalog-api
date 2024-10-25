@@ -1,0 +1,90 @@
+<div x-data="detailsTable()">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stem</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            <template x-for="(detail, index) in details" :key="index">
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap" x-text="detail.key"></td>
+                    <td class="px-6 py-4 whitespace-nowrap italic text-gray-600" x-text="detail.stem"></td>
+                    <td class="px-6 py-4  whitespace-nowrap" x-text="detail.value"></td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button type="button" @click="removeDetail(index)" class="text-red-600 hover:text-red-900">Remove</button>
+                    </td>
+                    <td>
+                        <input type="hidden" :name="`details.${index + 1}.key`" :value="detail.key">
+                        <input type="hidden" :name="`details.${index + 1}.stem`" :value="detail.stem">
+
+                        <input type="hidden" :name="`details.${index + 1}.value`" :value="detail.value">
+                    </td>
+                </tr>
+            </template>
+        </tbody>
+    </table>
+
+    <div class="mt-4">
+        <input x-model="newDetail.key" placeholder="Key" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+        
+        <select x-model="newDetail.valueType" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="bool">Bool</option>
+        </select>
+
+        <template x-if="newDetail.valueType === 'text'">
+            <input x-model="newDetail.value" placeholder="Value" class="mr-2 px-3 py-2 border border-gray-300 rounded-md" type="text">
+        </template>
+        <template x-if="newDetail.valueType === 'number'">
+            <input x-model="newDetail.value" placeholder="Value" class="mr-2 px-3 py-2 border border-gray-300 rounded-md" type="number">
+        </template>
+        <template x-if="newDetail.valueType === 'bool'">
+            <select x-model="newDetail.value" class="mr-2 px-3 py-2 border border-gray-300 rounded-md">
+                <option value="true">True</option>
+                <option value="false">False</option>
+            </select>
+        </template>
+
+        <button type="button" @click="addDetail" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Add Detail</button>
+    </div>
+</div>
+
+<script>
+    function detailsTable() {
+        const snowballStemmer = new Snowball('English');
+
+        return {
+            details: [],
+            newDetail: { key: '', value: '', valueType: 'text' },
+            addDetail() {
+                if (this.newDetail.key) {
+                    snowballStemmer.setCurrent(this.newDetail.key);
+                    snowballStemmer.stem();
+                    const stemmedKey = snowballStemmer.getCurrent();
+                    
+                    this.details.push({ 
+                        key: this.newDetail.key, 
+                        stem: stemmedKey, 
+                        value: this.newDetail.value 
+                    });
+                    
+                    this.newDetail = { key: '', value: '', valueType: 'text' };
+                }
+            },
+            removeDetail(index) {
+                this.details.splice(index, 1);
+            }
+        }
+    }
+</script>
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
+{% endif %}

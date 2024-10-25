@@ -6,7 +6,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
         </div>
-        <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
+        <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse x-cloak>
             <h3 class="text-lg font-semibold text-gray-800">General</h3>
             <div class="flex items-center space-x-4">
                 <label for="title" class="text-sm font-medium text-gray-700">Title</label>
@@ -49,6 +49,20 @@
         </div>
     </div>
 
+    <div x-data="{open: false}">
+        <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open">
+            <h2 class="text-lg font-medium text-gray-700">Details</h2>
+            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </div>
+        <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
+            <div class="flex flex-col space-y-2">
+                <div hx-get="/details/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Add the submit button here -->
     <div class="mt-6 flex justify-end">
@@ -66,3 +80,4 @@
 <script src="https://unpkg.com/htmx.org@2.0.2"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 <script src="//unpkg.com/alpinejs" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
