@@ -155,6 +155,11 @@ class Metadata(BaseModel):
     keywords: List[Keyword] = []
 
 
+class MetadataPayload(Metadata):
+    id: Optional[int] = None
+    uuid: Optional[str] = None
+
+
 def from_file(file_path: str) -> Metadata:
     """
     Load a metadata file from a file path and return the Metadata model.
