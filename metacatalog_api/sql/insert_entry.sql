@@ -1,10 +1,10 @@
 WITH inserted_unit AS (
     INSERT INTO units (name, symbol)
-    VALUES ({unit[name]}, {unit[symbol]})
+    VALUES ({variable[unit][name]}, {variable[unit][symbol]})
     ON CONFLICT (name) DO NOTHING
     RETURNING units.id
 ),
-inserted_varaible AS (
+inserted_variable AS (
     INSERT INTO variables (name, symbol, unit_id, column_names, keyword_id)
     VALUES (
         {variable[name]}, 
@@ -12,8 +12,8 @@ inserted_varaible AS (
         (
             SELECT id FROM inserted_unit
             UNION ALL
-            SELECT units.id FROM units WHERE unit_name = {unit[name]} LIMIT 1
-        )
+            SELECT units.id FROM units WHERE units.name = {variable[unit][name]} LIMIT 1
+        ),
        {variable[column_names]},
         {variable[keyword][id]}
     )
@@ -31,7 +31,7 @@ inserted_license AS (
         {license[summary]},
         {license[link]}
     )
-    ON CONFLICT (short_title, title) DO NOTHING
+    ON CONFLICT (short_title) DO NOTHING
     RETURNING licenses.id
 )
 
@@ -44,22 +44,22 @@ VALUES (
     {location},
     {version},
     {latest_version_id},
-    {entry_is_partial},
-    {entry_comment},
-    {entry_citation},
+    {is_partial},
+    {comment},
+    {citation},
     (
         SELECT id FROM inserted_license
         UNION ALL
-        SELECT licenses.id FROM licenses WHERE short_title = {license_short_title} LIMIT 1
+        SELECT licenses.id FROM licenses WHERE short_title = {license[short_title]} LIMIT 1
     ),
     (
         SELECT id FROM inserted_variable
         UNION ALL
-        SELECT variables.id FROM variables WHERE name = {variable_name} LIMIT 1
+        SELECT variables.id FROM variables WHERE name = {variable[name]} LIMIT 1
     ),
-    {entry_embargo},
-    {entry_embargo_end},
-    {entry_publication},
-    {entry_lastUpdate}
+    {embargo},
+    {embargo_end},
+    {publication},
+    {lastUpdate}
 )
 RETURNING entries.id;

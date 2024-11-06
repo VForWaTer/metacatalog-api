@@ -13,7 +13,7 @@ WITH inserted_person AS (
     ON CONFLICT (uuid) DO NOTHING
     RETURNING persons.id
 )
-INSERT INTO nm_persons_entries (person_id, entry_id, relationship_type_id, order)
+INSERT INTO nm_persons_entries (person_id, entry_id, relationship_type_id, "order")
 VALUES (
     (
         SELECT id FROM inserted_person
