@@ -1,4 +1,4 @@
-CREATE EXTENSION postgis;
+-- CREATE EXTENSION postgis;
 
 -- UNITS
 CREATE SEQUENCE IF NOT EXISTS public.units_id_seq
