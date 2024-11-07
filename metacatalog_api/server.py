@@ -70,13 +70,17 @@ def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int =
 def new_entry_page(request: Request):
     return templates.TemplateResponse(request=request, name="add_entry.html", context={})
 
+
 @app.post('/entries')
 async def insert_entry(request: Request):
-
+    # collect form data an convert it to a dict
     form = await request.form()
     data = dict(form)
+
+    # add the entry and return the response
+    entry = core.add_entry(data)
     
-    return HTMLResponse(f'<pre><code>{data}</code></pre>')
+    return HTMLResponse(f'<pre><code>{entry}</code></pre>')
 
 @app.get('/entries/{id}')
 @app.get('/entries/{id}.{fmt}')

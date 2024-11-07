@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import db
+from metacatalog_api import utils
 
 
 load_dotenv()
@@ -100,7 +101,29 @@ def variables(id: int = None, only_available: bool = False, offset: int = None, 
     with connect() as session:
         if only_available:
             variables = db.get_available_variables(session, limit=limit, offset=offset)
+        elif id is not None:
+            variables = [db.get_variable_by_id(session, id=id)]
         else:
             variables = db.get_variables(session, limit=limit, offset=offset)
     
     return variables
+
+def add_entry(flat_dict: dict) -> Metadata:
+    # get the variable
+    # TODO: put this into the server, as this is due to the FORM. the core package should use the payload model
+    if 'variable_id' in flat_dict or 'variable.id' in flat_dict:
+        vid = flat_dict.pop('variable_id', flat_dict.pop('variable.id'))
+        variable = variables(id=vid)[0]
+    
+    # overload the payload with the variable from the database
+    flat_dict['variable'] = variable.model_dump()
+
+    # load the payload model
+    payload = utils.metadata_payload_to_model(flat_dict)
+
+    # add the entry to the database
+    with connect() as session:
+        metadata = db.add_entry(session, payload=payload)
+    
+    return metadata
+    
