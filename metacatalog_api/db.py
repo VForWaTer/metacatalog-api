@@ -1,10 +1,14 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 from pathlib import Path
 from uuid import uuid4
+import json
 
-from models import Author, Metadata, License, Variable
+from models import Author, Metadata, MetadataPayload, License, Variable
 from psycopg import Cursor
 from pydantic_geojson import FeatureCollectionModel
+
+from metacatalog_api import utils
+
 
 SQL_DIR = Path(__file__).parent / "sql"
 
@@ -196,7 +200,6 @@ def get_variables(session: Cursor, limit: int = None, offset: int = None) -> Lis
     
     return variables
     
-
 def get_available_variables(session: Cursor, limit: int = None, offset: int = None) -> List[Variable]:
     # build the filter
     filt = ""
@@ -210,6 +213,23 @@ def get_available_variables(session: Cursor, limit: int = None, offset: int = No
     results = session.execute(sql).fetchall()
 
     return [Variable(**result) for result in results]
+
+def get_variable_by_id(session: Cursor, id: int) -> Variable:
+    # build the filter
+    filt = f" WHERE v.id={id}"
+    off = ""
+    lim = ""
+
+    # build the basic query
+    sql = load_sql('get_variables.sql').format(filter=filt, offset=off, limit=lim)
+
+    # execute the query
+    result = session.execute(sql).fetchone()
+
+    if result is None:
+        raise ValueError(f"Variable with id {id} not found")
+    else:
+        return Variable(**result)
 
 def get_licenses(session: Cursor, limit: int = None, offset: int = None) -> List[License]:
     # build the filter
@@ -240,7 +260,6 @@ def get_license_by_id(session: Cursor, id: int) -> License:
     else:
         return License(**result)
 
-
 def get_entry_authors(session: Cursor, entry_id: int) -> List[Author]:
     # build the query
     sql = load_sql("get_entry_authors.sql").format(entry_id=entry_id)
@@ -251,14 +270,14 @@ def get_entry_authors(session: Cursor, entry_id: int) -> List[Author]:
     return [Author(**result) for result in results]
 
 
-class MetadataPayload(Metadata):
-    id: Optional[int] = None
-    uuid: Optional[str] = None
 
 def add_entry(session: Cursor, payload: MetadataPayload) -> Metadata:
+   # execute the query
+    insert_payload = utils.dict_to_pg_payload(payload.model_dump())
+
     # fill out a few fields
     # get the sql for inserting a new entry
-    sql = load_sql('insert_entry.sql').format(**payload.model_dump())
+    sql = load_sql('insert_entry.sql').format(**insert_payload)
 
     # execute the query
     entry_id = session.execute(sql).fetchone()['id']
@@ -269,20 +288,38 @@ def add_entry(session: Cursor, payload: MetadataPayload) -> Metadata:
     # add a uuid if there is none
     if payload.author.uuid is None:
         payload.author.uuid = uuid4()
-    session.execute(insert_author.format(entry_id=entry_id, role='author', order=1, **payload.author.model_dump()))
+    author_payload = utils.dict_to_pg_payload(payload.author.model_dump())
+    session.execute(insert_author.format(entry_id=entry_id, role="'author'", order=1, **author_payload))
 
     # add co-authors
     if payload.authors is not None and len(payload.authors) > 1:
         for author, idx in enumerate(payload.authors[1:]):
             if author.uuid is None:
                 author.uuid = uuid4()
-            session.execute(insert_author.format(entry_id=entry_id, role='coAuthor', order=idx + 2, **author.model_dump()))
+            author_payload = utils.dict_to_pg_payload(author.model_dump())
+            session.execute(insert_author.format(entry_id=entry_id, role="'coAuthor'", order=idx + 2, **author_payload))
 
     # add the details
     if payload.details is not None and len(payload.details) > 0:
-        detail_sql = load_sql('insert_detail.sql')
+        detail_sql = load_sql('insert_detail_to_entry.sql')
         for detail in payload.details:
             # handle the data type
-            detail_payload = {k: i for k, i in detail.model_dump() if k != 'value'}
-            detail_payload['raw_value'] = detail.value if isinstance(detail.value, dict) else {'__literal__': detail.value}
+            # TODO: here we remove the decrecated fields 'title' and 'description' - this can be cleaned up when we update the database
+            detail_payload = utils.dict_to_pg_payload({k: i for k, i in detail.model_dump().items() if k not in  ['value', 'title', 'descripttion']})
+            
+            # handle literals
+            if isinstance(detail.value, dict):
+                detail_payload['raw_value'] = detail.value
+            else:
+                detail_payload['raw_value'] = "'" + json.dumps({"__literal__": detail.value}) + "'"
             session.execute(detail_sql.format(entry_id=entry_id, **detail_payload))
+
+    # TODO: add the keywords
+    
+    # load the entry from the database
+    entry = get_entries_by_id(session, entry_ids=entry_id)[0]
+    return entry
+
+def add_datasource(session: Cursor):
+    pass
+
