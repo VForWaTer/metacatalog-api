@@ -1,0 +1,109 @@
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% set view_inputs = request.query_params.get('view-inputs') is not none %} 
+{% set geom = request.query_params.get('geom', 'marker') %}
+{% if not embedded %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
+{% endif %}
+
+<div class="flex flex-col h-full w-full">
+    <div id="map" class="flex-grow"></div>
+
+    {% if view_inputs %}
+        <div class="flex flex-row gap-2 p-2">
+            <input id="location_lon" type="number" step="0.01" min="-180" max="180" name="location.lon" placeholder="Longitude" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+            <input id="location_lat" type="number" step="0.01" min="-90" max="90" name="location.lat" placeholder="Latitude" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+        </div>
+    {% else %}
+        <input id="location_lon" type="hidden" name="location.lon" value="">
+        <input id="location_lat" type="hidden" name="location.lat" value="">
+    {% endif %}
+</div>
+
+<script>
+    var map = L.map('map').setView([51.505, -0.09], 10);
+    // make sure to always only have one marker
+    var currentMarker;
+
+    var OpenTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        maxZoom: 17,
+        attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    }).addTo(map);
+
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    var drawControl = new L.Control.Draw({
+        position: 'topleft',
+        draw: {
+            marker: true,
+            circle: false,
+            rectangle: false,
+            circlemarker: false,
+            polygon: false,
+            polyline: false
+        },
+        edit: {
+            featureGroup: drawnItems,
+            remove: true
+        }
+    });
+    map.addControl(drawControl);
+
+    // this is not really working
+    L.drawLocal.draw.toolbar.buttons.marker = 'Place a marker for the Metadata Entry';
+
+    // event handler for creating a new marker
+    map.on(L.Draw.Event.CREATED, function (event) {
+        var layer = event.layer;
+        if (currentMarker) {
+            drawnItems.removeLayer(currentMarker);
+        }
+        currentMarker = layer;
+        drawnItems.addLayer(currentMarker);
+        updateInputFields(currentMarker.getLatLng().lat, currentMarker.getLatLng().lng);
+    });
+
+    // event handler for editing a marker
+    map.on(L.Draw.Event.EDITED, function (event) {
+        updateInputFields(currentMarker.getLatLng().lat, currentMarker.getLatLng().lng);
+    });
+
+    // function to change the input fields
+    function updateInputFields(lat, lng) {
+        document.getElementById('location_lat').value = lat;
+        document.getElementById('location_lon').value = lng;
+    }
+
+    // function to change the marker
+    function updateMarker(lat, lng) {
+        var newLatLng = new L.LatLng(lat, lng);
+        if (currentMarker) {
+            currentMarker.setLatLng(newLatLng);
+        } else {
+            currentMarker = L.marker(newLatLng).addTo(drawnItems);
+        }
+        map.panTo(newLatLng);
+    }
+
+    // event listener for the longitude input
+    document.getElementById('location_lon').addEventListener('input', function() {
+        updateMarker(parseFloat(document.getElementById('location_lat').value), parseFloat(this.value));
+    });
+
+    // event listener for the latitude input
+    document.getElementById('location_lat').addEventListener('input', function() {
+        updateMarker(parseFloat(this.value), parseFloat(document.getElementById('location_lon').value));
+    });
+
+    // after the map has finished loading, emit the resize event of the window
+    // otherwise leaflet is not aware of the current container size
+    map.whenReady(function () {
+        setTimeout(function () {
+            window.dispatchEvent(new Event('resize'));
+        }, 50);
+    })
+</script>
