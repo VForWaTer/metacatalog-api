@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import core
+from metacatalog_api.views import editing_tools
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -192,6 +193,9 @@ def get_variables(request: Request, fmt: FMT = None, offset: int = None, limit: 
 def new_details(request: Request):
     return templates.TemplateResponse(request=request, name="details.html", context={})
 
+
+# register the editing tools
+app.include_router(editing_tools.edit_router, prefix='/utils')
 
 if __name__ == "__main__":
     import uvicorn
