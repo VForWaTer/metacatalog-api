@@ -114,6 +114,12 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
     author = Author(**payload['authors'][0])
     authors = [Author(**a) for a in payload['authors'][1:]]
 
+    # extract the location
+    if 'location' in payload:
+        location = f"POINT ({payload['location']['lon']} {payload['location']['lat']})"
+    else:
+        location = 'NULL'
+
     meta = MetadataPayload(
         title=payload['title'],
         abstract=payload['abstract'],
@@ -122,7 +128,7 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
         license=license,
         is_partial=False,
         comment=payload.get('comment'),
-        location=payload.get('location'),
+        location=location,
         variable=variable,
         citation=payload.get('citation'),
         embargo=False,
