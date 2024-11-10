@@ -111,14 +111,24 @@
         map.panTo(newLatLng);
     }
 
-    // event listener for the longitude input
+    // Enhanced input handlers with validation
+    function validateAndUpdateMarker(lat, lon) {
+        if (isNaN(lat) || isNaN(lon)) return;
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+        updateMarker(lat, lon);
+    }
+
+    // Event listeners without debounce
     document.getElementById('location_lon').addEventListener('input', function() {
-        updateMarker(parseFloat(document.getElementById('location_lat').value), parseFloat(this.value));
+        const lon = parseFloat(this.value);
+        const lat = parseFloat(document.getElementById('location_lat').value);
+        validateAndUpdateMarker(lat, lon);
     });
 
-    // event listener for the latitude input
     document.getElementById('location_lat').addEventListener('input', function() {
-        updateMarker(parseFloat(this.value), parseFloat(document.getElementById('location_lon').value));
+        const lat = parseFloat(this.value);
+        const lon = parseFloat(document.getElementById('location_lon').value);
+        validateAndUpdateMarker(lat, lon);
     });
 
     // after the map has finished loading, emit the resize event of the window
