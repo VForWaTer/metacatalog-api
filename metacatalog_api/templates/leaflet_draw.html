@@ -14,8 +14,30 @@
 
     {% if view_inputs %}
         <div class="flex flex-row gap-2 p-2">
-            <input id="location_lon" type="number" step="0.01" min="-180" max="180" name="location.lon" placeholder="Longitude" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
-            <input id="location_lat" type="number" step="0.01" min="-90" max="90" name="location.lat" placeholder="Latitude" class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+            <input id="location_lon" 
+                   type="number" 
+                   step="0.01" 
+                   min="-180" 
+                   max="180" 
+                   name="location.lon" 
+                   placeholder="Longitude" 
+                   aria-label="Longitude coordinate"
+                   aria-describedby="lon-error"
+                   pattern="-?([0-9]*[.])?[0-9]+"
+                   class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+            <span id="lon-error" class="hidden text-red-500 text-sm">Please enter a valid longitude (-180 to 180)</span>
+            <input id="location_lat" 
+                   type="number" 
+                   step="0.01" 
+                   min="-90" 
+                   max="90" 
+                   name="location.lat" 
+                   placeholder="Latitude" 
+                   aria-label="Latitude coordinate"
+                   aria-describedby="lat-error"
+                   pattern="-?([0-9]*[.])?[0-9]+"
+                   class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500">
+            <span id="lat-error" class="hidden text-red-500 text-sm">Please enter a valid latitude (-90 to 90)</span>
         </div>
     {% else %}
         <input id="location_lon" type="hidden" name="location.lon" value="">
