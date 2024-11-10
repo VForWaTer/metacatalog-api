@@ -115,10 +115,24 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
     authors = [Author(**a) for a in payload['authors'][1:]]
 
     # extract the location
+         # extract the location
     if 'location' in payload:
-        location = f"POINT ({payload['location']['lon']} {payload['location']['lat']})"
+        # Validate coordinates exist and are numeric
+        loc = payload['location']
+        if not all(k in loc for k in ('lon', 'lat')):
+            raise ValueError("Location must contain 'lon' and 'lat' coordinates")
+        try:
+            lon = float(loc['lon'])
+            lat = float(loc['lat'])
+            # Basic coordinate validation
+            if not (-180 <= lon <= 180 and -90 <= lat <= 90):
+                raise ValueError("Invalid coordinate values")
+        except (ValueError, TypeError):
+            raise ValueError("Coordinates must be valid numbers")
+        # Use parameterized format to prevent SQL injection
+        location = f"POINT ({lon:f} {lat:f})"
     else:
-        location = 'NULL'
+        location = 'NULL'   
 
     meta = MetadataPayload(
         title=payload['title'],
