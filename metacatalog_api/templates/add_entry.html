@@ -34,6 +34,22 @@
     </div>
 
     <div x-data="{open: false}">
+        <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open;window.dispatchEvent(new Event('resize'));">
+            <h2 class="text-lg font-medium text-gray-700">Location</h2>
+            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </div>
+        <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
+            <div class="flex flex-col space-y-2">
+                <div class="w-full h-96 border border-gray-300 rounded-md">
+                    <div hx-get="/utils/leaflet_draw.html?embedded=true&view-inputs" hx-trigger="load" hx-swap="outerHTML"></div>
+                </div>
+            </div>
+    </div>
+
+
+    <div x-data="{open: false}">
         <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open">
             <h2 class="text-lg font-medium text-gray-700">License</h2>
             <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -69,10 +85,7 @@
         <button type="submit" class="px-4 py-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             Save Entry
         </button>
-    </div>
-
-
-    
+    </div>    
 
 </form>
 
@@ -81,3 +94,8 @@
 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 <script src="//unpkg.com/alpinejs" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
+<!-- leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">

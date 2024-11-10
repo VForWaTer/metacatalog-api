@@ -108,6 +108,7 @@ def variables(id: int = None, only_available: bool = False, offset: int = None, 
     
     return variables
 
+
 def add_entry(flat_dict: dict) -> Metadata:
     # get the variable
     # TODO: put this into the server, as this is due to the FORM. the core package should use the payload model
