@@ -69,7 +69,8 @@ class DataSourceNames(Enum):
 
 class DataSourceType(BaseModel):
     id: Optional[int] = None
-    name: DataSourceNames
+    #name: DataSourceNames
+    name: str
     title: str
     description: Optional[str] = None
 
@@ -83,6 +84,14 @@ class TemporalScale(BaseModel):
     @computed_field
     def support_iso(self) -> timedelta:
         return self.resolution * self.support
+    
+    @computed_field
+    def observation_start_iso(self) -> datetime:
+        return self.extent[0]
+    
+    @computed_field
+    def observation_end_iso(self) -> datetime:
+        return self.extent[1]
  
 class SpatialScale(BaseModel):
     id: Optional[int] = None

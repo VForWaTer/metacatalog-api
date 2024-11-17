@@ -10,6 +10,7 @@ from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import core
 from metacatalog_api.views import editing_tools
+from metacatalog_api import  utils
 
 logger = logging.getLogger('uvicorn.error')
 
@@ -78,8 +79,24 @@ async def insert_entry(request: Request):
     form = await request.form()
     data = dict(form)
 
+    # check if there is a variable id to be loaded
+    if 'variable_id' in data or 'variable.id' in data:
+        vid = data.pop('variable_id', data.pop('variable.id'))
+        variable = core.variables(id=vid)[0]
+
+        # append the variable to the data
+        data['variable'] = variable.model_dump()
+
+    # second: turn the form data into a metadata payload
+    payload = utils.metadata_payload_to_model(data)
+
+    # check if the payload contained a datasource
+    if 'datasource' in payload:
+        datasource = utils.datasource_payload_to_model(payload['datasource'])
+        payload['datasource'] = datasource
+    
     # add the entry and return the response
-    entry = core.add_entry(data)
+    entry = core.add_entry(payload)
     
     return HTMLResponse(f'<pre><code>{entry}</code></pre>')
 
@@ -193,6 +210,31 @@ def get_variables(request: Request, fmt: FMT = None, offset: int = None, limit: 
 def new_details(request: Request):
     return templates.TemplateResponse(request=request, name="details.html", context={})
 
+@app.get('/datasources/new.html')
+def new_datasource(request: Request):
+    # load the datasource types
+    types = core.datatypes()
+    return templates.TemplateResponse(request=request, name="add_datasource.html", context={"types": types})
+
+@app.post('/datasources')
+async def add_datasource(request: Request):
+    # collect form data an convert it to a dict
+    form = await request.form()
+    data = dict(form)
+
+    # check that the type is provided
+    if 'type_id' in data:
+        dtype = core.datatypes(id=data['type_id'])[0] 
+        data['type'] = dtype.model_dump()
+
+    # turn this into a payload
+    payload = utils.datasource_payload_to_model(data)
+
+    # add the datasource and return the response
+    datasource = core.add_datasource(-1, payload)
+
+    # add the entry and return the response
+    return HTMLResponse(f'<pre><code>{datasource}</code></pre>')
 
 # register the editing tools
 app.include_router(editing_tools.edit_router, prefix='/utils')

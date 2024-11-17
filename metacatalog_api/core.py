@@ -5,12 +5,11 @@ from contextlib import contextmanager
 
 import psycopg
 import psycopg.rows
-from metacatalog_api.models import Metadata, Author, Variable
+from metacatalog_api import models
 from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import db
-from metacatalog_api import utils
 
 
 load_dotenv()
@@ -28,7 +27,7 @@ def connect(autocommit: bool = True):
             yield cur
 
 
-def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  search: str = None, filter: dict = {}) -> list[Metadata]:
+def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  search: str = None, filter: dict = {}) -> list[models.Metadata]:
     # check if we filter or search
     with connect() as session:
         if search is not None:
@@ -83,7 +82,7 @@ def licenses(id: int = None, offset: int = None, limit: int = None):
     return result
 
 
-def authors(id: int = None, entry_id: int = None, search: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[Author]:
+def authors(id: int = None, entry_id: int = None, search: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[models.Author]:
     with connect() as session:
         # if an author_id is given, we return only the author of that id
         if id is not None:
@@ -97,7 +96,7 @@ def authors(id: int = None, entry_id: int = None, search: str = None, exclude_id
     return authors
 
 
-def variables(id: int = None, only_available: bool = False, offset: int = None, limit: int = None) -> List[Variable]:
+def variables(id: int = None, only_available: bool = False, offset: int = None, limit: int = None) -> List[models.Variable]:
     with connect() as session:
         if only_available:
             variables = db.get_available_variables(session, limit=limit, offset=offset)
@@ -108,23 +107,39 @@ def variables(id: int = None, only_available: bool = False, offset: int = None, 
     
     return variables
 
+def datatypes(id: int = None) -> List[models.DataSourceType]:
+    # TODO: this may need some more parameters
+    with connect() as session:
+        return db.get_datatypes(session, id=id)
 
-def add_entry(flat_dict: dict) -> Metadata:
+
+def add_entry(payload: models.MetadataPayload) -> models.Metadata:
     # get the variable
     # TODO: put this into the server, as this is due to the FORM. the core package should use the payload model
-    if 'variable_id' in flat_dict or 'variable.id' in flat_dict:
-        vid = flat_dict.pop('variable_id', flat_dict.pop('variable.id'))
-        variable = variables(id=vid)[0]
+    # if 'variable_id' in flat_dict or 'variable.id' in flat_dict:
+    #     vid = flat_dict.pop('variable_id', flat_dict.pop('variable.id'))
+    #     variable = variables(id=vid)[0]
     
-    # overload the payload with the variable from the database
-    flat_dict['variable'] = variable.model_dump()
+    # # overload the payload with the variable from the database
+    # flat_dict['variable'] = variable.model_dump()
 
     # load the payload model
-    payload = utils.metadata_payload_to_model(flat_dict)
+    #payload = utils.metadata_payload_to_model(flat_dict)
 
     # add the entry to the database
     with connect() as session:
         metadata = db.add_entry(session, payload=payload)
+
+        # check if there is a datasource in the payload
+        if 'datasource' in payload:
+            datasource_id = db.add_datasource(session, entry_id=metadata.id, datasource=payload['datasource'])
+            metadata.datasource_id = datasource_id
     
     return metadata
-    
+
+
+def add_datasource(entry_id: int, payload: models.DataSource) -> models.DataSource:
+    with connect() as session:
+        datasource_id = db.add_datasource(session, entry_id=entry_id, datasource=payload)
+        
+    return datasource_id
