@@ -46,6 +46,7 @@
                     <div hx-get="/utils/leaflet_draw.html?embedded=true&view-inputs" hx-trigger="load" hx-swap="outerHTML"></div>
                 </div>
             </div>
+        </div>
     </div>
 
 
@@ -79,6 +80,7 @@
         </div>
     </div>
 
+    <div hx-get="/datasources/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
 
     <!-- Add the submit button here -->
     <div class="mt-6 flex justify-end">
@@ -99,3 +101,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
+<style>
+    [x-cloak] { display: none !important; }
+</style>

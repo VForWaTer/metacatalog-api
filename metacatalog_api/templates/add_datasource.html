@@ -1,0 +1,132 @@
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/htmx.org@2.0.2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+<script src="//unpkg.com/alpinejs" defer></script>
+
+<!-- leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endif %}
+
+{% if not embedded %}
+ <form hx-post="/datasources" hx-swap="afterbegin" >
+{% endif %}
+
+<div x-data="{open: false}">
+    <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open;window.dispatchEvent(new Event('resize'));">
+        <h2 class="text-lg font-medium text-gray-700">Datasource</h2>
+        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </div>
+    <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse x-cloak>
+        <h3 class="text-lg font-semibold text-gray-800">General</h3>
+        
+        <div class="flex items-center space-x-12">
+            <label for="title" class="text-sm font-medium text-gray-700">Path</label>
+            <input type="text" name="path" id="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="flex items-center space-y-6 space-x-12">
+            <label for="type_id" class="text-sm font-medium text-gray-700">Type</label>
+            <select name="type_id" id="type_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                {% for type in types %}
+                    <option value="{{type.id}}">{{type.title}} ({{type.name}})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex items-center space-y-6 space-x-12">
+            <label for="variable_names" class="text-sm font-medium text-gray-700">Variable names</label>
+            <div class="flex flex-col space-y-2">
+                <input type="text" name="variable_names" id="variable_names" class="block w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Enter variable names separated by commas">
+                <p class="text-sm text-gray-500 mt-1">
+                    Enter the variable names separated by commas. 
+                    The variable names identify the dimension in the datasource, which can be attributed to the Metadata Entry, this source is
+                    associated with. This is important for multi-variable sources. 
+                    In a CSV this applies to the column, in a SQL database to the column name and in a netCDF file to the variable name.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex flex-col space-y-6">
+            <h3 class="text-lg font-semibold text-gray-800">Data Source Scale</h3>
+            <div class="grid grid-cols-2 gap-4 items-start">
+                <div>
+                    <div x-data="{spatialActive: false}">
+                        <label for="spatial_scale" class="text-sm font-medium text-gray-700">Add spatial scale</label>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input x-on:change="window.dispatchEvent(new Event('resize'));" type="checkbox" name="add_spatial_scale" id="spatial_scale" :class="{'right-0 border-green-400': spatialActive, 'right-auto border-gray-300': !spatialActive}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" x-model="spatialActive"/>
+                            <label for="spatial_scale" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                        <div x-show="spatialActive" x-collapse x-cloak>
+                            <div class="flex flex-col mt-6">
+                                <div id="mapcontainer" class="w-full h-96 border border-gray-300 rounded-md">
+                                    <div hx-get="/utils/leaflet_draw.html?embedded=true&view-inputs&geom=extent" hx-trigger="load" hx-swap="outerHTML"></div>
+                                </div>
+                                <div class="flex items-center space-x-12">
+                                    <label for="spatial_scale_resolution" class="text-sm font-medium text-gray-700">Resolution (m)</label>
+                                    <input type="number" name="spatial_scale.resolution" id="spatial_scale_resolution" min="0" step="100" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div class="flex items-center space-x-12">
+                                    <label for="spatial_scale_dimension_names" class="text-sm font-medium text-gray-700">Dimension names</label>
+                                    <input type="text" name="spatial_scale.dimension_names" id="spatial_scale_dimension_names" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div x-data="{temporalActive: false}">
+                        <label for="temporal_scale" class="text-sm font-medium text-gray-700">Add temporal scale</label>
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" name="add_temporal_scale" id="temporal_scale" :class="{'right-0 border-green-400': temporalActive, 'right-auto border-gray-300': !temporalActive}" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" x-model="temporalActive"/>
+                            <label for="temporal_scale" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                        </div>
+                        <div x-show="temporalActive" x-collapse x-cloak>
+                            <div class="flex flex-col mt-6">
+                                <div class="flex items-center space-x-12">
+                                    <label for="temporal_scale_resolution" class="text-sm font-medium text-gray-700">Resolution (seconds)</label>
+                                    <input type="number" name="temporal_scale.resolution" id="temporal_scale.resolution" min="0" step="3600" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div class="flex items-center space-x-12">
+                                    <label for="temporal_scale_dimension_names" class="text-sm font-medium text-gray-700">Dimension names</label>
+                                    <input type="text" name="temporal_scale.dimension_names" id="temporal_scale.dimension_names" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <div class="flex flex-col space-y-4 p-4">
+                                    <h3 class="text-lg font-semibold text-gray-800">Extent</h3>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="start_time" class="text-sm font-medium text-gray-700">Start Time</label>
+                                            <input type="datetime-local" id="start_time" name="temporal_scale.start_time" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                        </div>
+                                        <div>
+                                            <label for="end_time" class="text-sm font-medium text-gray-700">End Time</label>
+                                            <input type="datetime-local" id="end_time" name="temporal_scale.end_time" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if not embedded %}
+        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Add Datasource</button>
+        {% endif %}
+    </div>
+</div>
+
+{% if not embedded %}
+</form>
+{% endif %}
