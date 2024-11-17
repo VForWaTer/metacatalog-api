@@ -12,9 +12,12 @@ from fastapi.templating import Jinja2Templates
 edit_router = APIRouter()
 
 # initialize the templates
-templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
 @edit_router.get("/leaflet_draw.html")
-def leaflet_draw(request: Request):
-    return templates.TemplateResponse(request=request, name="leaflet_draw.html", context={})
+def leaflet_draw(request: Request, geom: str = 'marker'):
+    if geom.lower() == 'marker':
+        return templates.TemplateResponse(request=request, name="leaflet_marker.html", context={})
+    elif geom.lower() == 'extent':
+        return templates.TemplateResponse(request=request, name="leaflet_extent.html", context={})

@@ -1,6 +1,5 @@
 {% set embedded = request.query_params.get('embedded') == 'true' %}
 {% set view_inputs = request.query_params.get('view-inputs') is not none %} 
-{% set geom = request.query_params.get('geom', 'marker') %}
 {% if not embedded %}
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -9,8 +8,9 @@
 <link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
 {% endif %}
 
+
 <div class="flex flex-col h-full w-full">
-    <div id="map" class="flex-grow"></div>
+    <div id="marker-map" class="flex-grow"></div>
 
     {% if view_inputs %}
         <div class="flex flex-row gap-2 p-2">
@@ -46,17 +46,19 @@
 </div>
 
 <script>
-    var map = L.map('map').setView([51.505, -0.09], 10);
+    // initialize the map for the marker
+    var markermap = L.map('marker-map').setView([51.505, -0.09], 10);
+
     // make sure to always only have one marker
     var currentMarker;
 
     var OpenTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
         maxZoom: 17,
         attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-    }).addTo(map);
+    }).addTo(markermap);
 
-    var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
+    var markerDrawnItems = new L.FeatureGroup();
+    markermap.addLayer(markerDrawnItems);
 
     var drawControl = new L.Control.Draw({
         position: 'topleft',
@@ -69,28 +71,25 @@
             polyline: false
         },
         edit: {
-            featureGroup: drawnItems,
+            featureGroup: markerDrawnItems,
             remove: true
         }
     });
-    map.addControl(drawControl);
-
-    // this is not really working
-    L.drawLocal.draw.toolbar.buttons.marker = 'Place a marker for the Metadata Entry';
+    markermap.addControl(drawControl);
 
     // event handler for creating a new marker
-    map.on(L.Draw.Event.CREATED, function (event) {
+    markermap.on(L.Draw.Event.CREATED, function (event) {
         var layer = event.layer;
         if (currentMarker) {
-            drawnItems.removeLayer(currentMarker);
+            markerDrawnItems.removeLayer(currentMarker);
         }
         currentMarker = layer;
-        drawnItems.addLayer(currentMarker);
+        markerDrawnItems.addLayer(currentMarker);
         updateInputFields(currentMarker.getLatLng().lat, currentMarker.getLatLng().lng);
     });
 
     // event handler for editing a marker
-    map.on(L.Draw.Event.EDITED, function (event) {
+    markermap.on(L.Draw.Event.EDITED, function (event) {
         updateInputFields(currentMarker.getLatLng().lat, currentMarker.getLatLng().lng);
     });
 
@@ -106,9 +105,9 @@
         if (currentMarker) {
             currentMarker.setLatLng(newLatLng);
         } else {
-            currentMarker = L.marker(newLatLng).addTo(drawnItems);
+            currentMarker = L.marker(newLatLng).addTo(markerDrawnItems);
         }
-        map.panTo(newLatLng);
+        markermap.panTo(newLatLng);
     }
 
     // Enhanced input handlers with validation
@@ -133,7 +132,7 @@
 
     // after the map has finished loading, emit the resize event of the window
     // otherwise leaflet is not aware of the current container size
-    map.whenReady(function () {
+    markermap.whenReady(function () {
         setTimeout(function () {
             window.dispatchEvent(new Event('resize'));
         }, 50);
