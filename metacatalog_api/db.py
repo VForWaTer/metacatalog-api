@@ -3,7 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 import json
 
-from models import Author, Metadata, MetadataPayload, License, Variable
+from models import Author, Metadata, MetadataPayload, License, Variable, DataSource, DataSourceType
 from psycopg import Cursor
 from pydantic_geojson import FeatureCollectionModel
 
@@ -269,6 +269,24 @@ def get_entry_authors(session: Cursor, entry_id: int) -> List[Author]:
 
     return [Author(**result) for result in results]
 
+def get_datatypes(session: Cursor, id: int = None) -> List[DataSourceType]:
+    # build the query
+    sql = "SELECT * FROM datasource_types"
+
+    # handle the id
+    if id is not None:
+        sql += f" WHERE id={id}"
+    sql += ";"
+
+    # execute the query
+    results = session.execute(sql).fetchall()
+
+    return [DataSourceType(**result) for result in results]
+
+
+def get_datasource_by_id(session: Cursor, id: int) -> DataSource:
+    # handle the filter
+    raise NotImplementedError
 
 
 def add_entry(session: Cursor, payload: MetadataPayload) -> Metadata:
@@ -320,6 +338,34 @@ def add_entry(session: Cursor, payload: MetadataPayload) -> Metadata:
     entry = get_entries_by_id(session, entry_ids=entry_id)[0]
     return entry
 
-def add_datasource(session: Cursor):
-    pass
+def add_datasource(session: Cursor, entry_id: int, datasource: DataSource) -> int:
+    # get the insert payload
+    insert_payload = utils.dict_to_pg_payload(datasource.model_dump())
+    
+    # we have to handle all optional settings to avoid errors on formatting the SQL
+    if 'temporal_scale' not in insert_payload or insert_payload['temporal_scale'] == 'NULL':
+        insert_payload['temporal_scale'] = {
+            'resolution': 'NULL',
+            'observation_start': 'NULL',
+            'observation_end': 'NULL',
+            'support': 'NULL',
+            'dimension_names': 'NULL'
+        }
+    if 'spatial_scale' not in insert_payload or insert_payload['spatial_scale'] == 'NULL':
+        insert_payload['spatial_scale'] = {
+            'resolution': 'NULL',
+            'extent': 'NULL',
+            'support': 'NULL',
+            'dimension_names': 'NULL'
+        }
+
+    # get the sql for inserting a new datasource
+    sql = load_sql('insert_datasource.sql').format(**insert_payload, entry_id=entry_id)
+
+    # execute the query
+    datasource_id = session.execute(sql).fetchone()
+    
+    # TODO add the logic to load a datasource here
+    print(datasource_id)
+    return datasource_id
 

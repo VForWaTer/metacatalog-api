@@ -2,8 +2,11 @@ from typing import Dict, Any
 from datetime import datetime as dt
 from datetime import timedelta as td
 from uuid import UUID
+import json
 
-from models import MetadataPayload, License, Author, Variable, Detail
+from dateparser import parse as dateparse
+
+from metacatalog_api import models
 
 def flatten_to_nested(flat_dict: Dict[str, str]) -> Dict[str, Any]:
     """
@@ -62,6 +65,31 @@ def flatten_to_nested(flat_dict: Dict[str, str]) -> Dict[str, Any]:
     return nested_dict
 
 
+def remove_empty_values(payload: dict) -> dict:
+    """
+    Removes empty values from a dictionary.
+    Currently, None and '' are considered empty.
+    """
+    cleaned_payload = {}
+    for k, v in payload.items():
+        if v is None or v == '':
+            continue
+        elif isinstance(v, dict):
+            child = remove_empty_values(v)
+            if len(child) > 0:
+                cleaned_payload[k] = child
+        else:
+            cleaned_payload[k] = v
+    return cleaned_payload
+
+
+def separate_string_list(string_list: str) -> list[str]:
+    # separate and sanitize the string
+    separated = [s.strip() for s in string_list.split(',')]
+    sanitized = [chunk for chunk in separated if chunk != '']
+
+    return sanitized
+
 def dict_to_pg_payload(payload: dict) -> dict:
     """
 
@@ -77,6 +105,8 @@ def dict_to_pg_payload(payload: dict) -> dict:
         # handle strings
         elif isinstance(v, str):
             insert_payload[k] = f"'{v}'"
+        elif isinstance(v, dict) and len(v) == 0:
+            insert_payload[k] = "'{}'::jsonb"
         elif isinstance(v, dict):
             insert_payload[k] = dict_to_pg_payload(v)
         elif isinstance(v, dt):
@@ -87,8 +117,7 @@ def dict_to_pg_payload(payload: dict) -> dict:
     return insert_payload
 
 
-# {'title': 'Rewe', 'external_id': 'qwedwd', 'abstract': 'wqefdwfwe', 'variable_id': '8', 'variable.id': '8', 'authors.1.first_name': 'Mirko', 'authors.1.last_name': 'Mälicke ', 'authors.1.organisation_name': 'eem', 'authors.1.organisation_abbrev': 'emefm', 'authors.1.affiliation': '', 'authors.1.is_organisation': 'false', 'authors.1.id': '1730825268539', 'license_id': '8', 'license.by_attribution': 'true', 'license.share_alike': 'false', 'license.commercial_use': 'false', 'license.short_title': 'CC BY-NC 4.0', 'license.title': 'Creative Commons Attribution-NonCommerical 4.0 International', 'license.summary': 'You are free to: Share — copy and redistribute the material in any medium or format Adapt — remix, transform, and build upon the material. Under the following terms: Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.  NonCommercial — You may not use the material for commercial purposes.', 'license.link': 'https://creativecommons.org/licenses/by-nc/4.0/legalcode.txt ', 'details.1.key': 'foo', 'details.1.stem': 'foo', 'details.1.value': 'Bar', 'details.2.key': 'Testset', 'details.2.stem': 'Testset', 'details.2.value': 'false'}
-def metadata_payload_to_model(payload: dict) -> MetadataPayload:
+def metadata_payload_to_model(payload: dict) -> models.MetadataPayload:
     """
     Converts a payload dictionary to a Metadata model.
     """
@@ -96,7 +125,7 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
     payload = flatten_to_nested(payload)
     
     # extract the license
-    license = License(
+    license = models.License(
         id=payload['license_id'],
         by_attribution=payload['license'].get('by_attribution'),
         share_alike=payload['license'].get('share_alike'), 
@@ -108,11 +137,11 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
     )
 
     # extract the variable
-    variable = Variable(**payload.pop('variable'))
+    variable = models.Variable(**payload.pop('variable'))
 
     # extract the first author
-    author = Author(**payload['authors'][0])
-    authors = [Author(**a) for a in payload['authors'][1:]]
+    author = models.Author(**payload['authors'][0])
+    authors = [models.Author(**a) for a in payload['authors'][1:]]
 
     # extract the location
          # extract the location
@@ -134,7 +163,7 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
     else:
         location = 'NULL'   
 
-    meta = MetadataPayload(
+    meta = models.MetadataPayload(
         title=payload['title'],
         abstract=payload['abstract'],
         external_id=payload.get('external_id'),
@@ -151,7 +180,62 @@ def metadata_payload_to_model(payload: dict) -> MetadataPayload:
         lastUpdate=dt.now(),
         author=author,
         authors=authors,
-        details=[Detail(**d) for d in payload['details']],
+        details=[models.Detail(**d) for d in payload['details']],
     )
 
     return meta
+
+
+def datasource_payload_to_model(payload: dict) -> models.DataSource:
+    # create the payload
+    payload = flatten_to_nested(payload)
+
+    # remove all empty values
+    payload = remove_empty_values(payload)
+
+    # check if a temporal scale is provided
+    if 'temporal_scale' in payload:
+        temporal_scale = models.TemporalScale(
+            resolution=payload['temporal_scale']['resolution'],
+            extent=[
+                dateparse(payload['temporal_scale']['observation_start']),
+                dateparse(payload['temporal_scale']['observation_end'])
+            ],
+            support=1.0,
+            dimension_names=separate_string_list(payload['temporal_scale']['dimension_names'])
+        )
+    else:
+        temporal_scale = None
+    
+    # check if a spatial scale is provided
+    if 'spatial_scale' in payload:
+        spatial_scale = models.SpatialScale(
+            resolution=payload['spatial_scale']['resolution'],
+            extent=payload['spatial_scale']['extent'],
+            support=1.0,
+            dimension_names=separate_string_list(payload['spatial_scale']['dimension_names'])
+        )
+    else:
+        spatial_scale = None
+
+    # check if the datasource type is provided
+    dtype = models.DataSourceType(**payload['type'])
+
+    # handle the args
+    args = payload.get('args', {})
+    if not isinstance(args, dict):
+        args = dict(__literal__=args)
+        args = json.dumps(args)
+
+    # finally create the datasource
+    datasource = models.DataSource(
+        path=payload['path'],
+        type=dtype,
+        variable_names=separate_string_list(payload['variable_names']),
+        temporal_scale=temporal_scale,
+        spatial_scale=spatial_scale,
+        args=args,
+        encoding=payload.get('encoding', 'utf-8')
+    )
+
+    return datasource
