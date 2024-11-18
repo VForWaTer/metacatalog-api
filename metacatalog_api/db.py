@@ -3,10 +3,10 @@ from pathlib import Path
 from uuid import uuid4
 import json
 
-from models import Author, Metadata, MetadataPayload, License, Variable, DataSource, DataSourceType
 from psycopg import Cursor
 from pydantic_geojson import FeatureCollectionModel
 
+from metacatalog_api.models import Author, Metadata, MetadataPayload, License, Variable, DataSource, DataSourceType
 from metacatalog_api import utils
 
 
