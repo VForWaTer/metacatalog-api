@@ -225,7 +225,6 @@ def datasource_payload_to_model(payload: dict) -> models.DataSource:
     args = payload.get('args', {})
     if not isinstance(args, dict):
         args = dict(__literal__=args)
-        args = json.dumps(args)
 
     # finally create the datasource
     datasource = models.DataSource(

@@ -366,6 +366,11 @@ def add_datasource(session: Cursor, entry_id: int, datasource: DataSource) -> in
             'support': 'NULL',
             'dimension_names': 'NULL'
         }
+    
+    if datasource.args is not None:
+        insert_payload['args'] = f"'{json.dumps(datasource.args)}'"
+    else:
+        insert_payload['args'] = '{}'
 
     # get the sql for inserting a new datasource
     sql = load_sql('insert_datasource.sql').format(**insert_payload, entry_id=entry_id)
