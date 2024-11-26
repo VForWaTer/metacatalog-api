@@ -351,6 +351,14 @@ def add_datasource(session: Cursor, entry_id: int, datasource: DataSource) -> in
             'support': 'NULL',
             'dimension_names': 'NULL'
         }
+    else:
+        insert_payload['temporal_scale'] = {
+            'resolution': f"'{insert_payload['temporal_scale']['resolution']}'",
+            'observation_start': f"'{insert_payload['temporal_scale']['extent'][0]}'", 
+            'observation_end': f"'{insert_payload['temporal_scale']['extent'][1]}'",
+            'support': insert_payload['temporal_scale']['support'],
+            'dimension_names': insert_payload['temporal_scale']['dimension_names']
+            }
     if 'spatial_scale' not in insert_payload or insert_payload['spatial_scale'] == 'NULL':
         insert_payload['spatial_scale'] = {
             'resolution': 'NULL',
@@ -365,7 +373,6 @@ def add_datasource(session: Cursor, entry_id: int, datasource: DataSource) -> in
     # execute the query
     datasource_id = session.execute(sql).fetchone()
     
-    # TODO add the logic to load a datasource here
-    print(datasource_id)
-    return datasource_id
+    # return datasource
+    return datasource_id['datasource_id']
 

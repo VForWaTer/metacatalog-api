@@ -131,15 +131,17 @@ def add_entry(payload: models.MetadataPayload) -> models.Metadata:
         metadata = db.add_entry(session, payload=payload)
 
         # check if there is a datasource in the payload
-        if 'datasource' in payload:
-            datasource_id = db.add_datasource(session, entry_id=metadata.id, datasource=payload['datasource'])
-            metadata.datasource_id = datasource_id
+        if payload.datasource is not None:
+            db.add_datasource(session, entry_id=metadata.id, datasource=payload.datasource)
     
-    return metadata
+    # TODO: this is not ideal as the metadata gets fetched from add_entry already
+    final_meta = entries(ids=metadata.id) 
+    return final_meta
 
 
 def add_datasource(entry_id: int, payload: models.DataSource) -> models.DataSource:
     with connect() as session:
         datasource_id = db.add_datasource(session, entry_id=entry_id, datasource=payload)
+
         
     return datasource_id

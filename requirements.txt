@@ -7,3 +7,4 @@ psycopg[binary]
 pydantic-geojson
 python-multipart
 dateparser
+polars
