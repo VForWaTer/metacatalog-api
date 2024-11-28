@@ -4,12 +4,13 @@ from uuid import uuid4
 import json
 
 from psycopg import Cursor
+from psycopg.errors import UndefinedTable
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api.models import Author, Metadata, MetadataPayload, License, Variable, DataSource, DataSourceType
 from metacatalog_api import utils
 
-
+DB_VERSION = 1
 SQL_DIR = Path(__file__).parent / "sql"
 
 # helper function to load sql files
@@ -21,6 +22,33 @@ def load_sql(file_name: str) -> str:
     with open(path, 'r') as f:
         return f.read()
 
+
+# helper function to check the database version
+def get_db_version(cursor: Cursor) -> dict:
+    try:
+        return cursor.execute("SELECT db_version FROM metacatalog_info order by db_version desc limit 1;").fetchone()
+    except UndefinedTable:
+        return {'db_version': 0}
+
+def check_db_version(cursor: Cursor) -> bool:
+    """Verify that the database version matches the expected version.
+    
+    Args:
+        cursor: Database cursor for executing queries
+        
+    Raises:
+        ValueError: If database version doesn't match DB_VERSION constant
+
+    Returns:
+        bool: True if database version matches
+    """
+    remote_db_version = get_db_version(cursor)['db_version']
+    if remote_db_version != DB_VERSION:
+        raise ValueError(
+            f"Database version mismatch. Expected {DB_VERSION}, got {remote_db_version}. "
+            "Please run database migrations to update your schema."
+        )
+    return True
 
 def install(cursor: Cursor, schema: str = 'public', populate_defaults: bool = True) -> None:
     # get the install script

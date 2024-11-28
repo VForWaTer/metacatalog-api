@@ -23,6 +23,10 @@ async def lifespan(app: FastAPI):
             logger.info("Database not installed, installing...")
             core.db.install(session, populate_defaults=True)
             logger.info("Database installed.")
+    
+    # after checking the database, we check the version
+    with core.connect() as session:
+        core.db.check_db_version(session)
 
     # now we yield the application
     yield
