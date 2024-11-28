@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import db
+from metacatalog_api import __version__ as metacatalog_version
 
 
 load_dotenv()
@@ -17,8 +18,6 @@ load_dotenv()
 METACATALOG_URI = os.environ.get("METACATALOG_URI", 'postgresql://metacatalog:metacatalog@localhost:5432/metacatalog')
 SQL_DIR = Path(__file__).parent / "sql"
 
-#METACATALOG_URI="postgresql://postgres:postgres@localhost:5433/metacatalog"
-print(METACATALOG_URI)
 
 @contextmanager
 def connect(autocommit: bool = True):
@@ -26,6 +25,26 @@ def connect(autocommit: bool = True):
         with con.cursor(row_factory=psycopg.rows.dict_row) as cur:
             yield cur
 
+
+def migrate_db() -> None:
+    # get the current version
+    with connect() as cursor:
+        current_version = db.get_db_version(cursor)['db_version']
+    
+    # as long as the local _DB_VERSION is higher than the remote version, we can load a migration
+    if current_version < db.DB_VERSION:
+        with connect() as cursor:
+            # get the migration script
+            migration_sql = db.load_sql(SQL_DIR / 'migrate' / f'migration_{current_version + 1}.sql')
+        
+            cursor.execute(migration_sql)
+            
+            # update the db version
+            cursor.execute(f"INSERT INTO metacatalog_info (db_version) VALUES ({current_version + 1});")
+        
+        # finally call the migration function recursively
+        migrate_db()
+        
 
 def entries(offset: int = 0, limit: int = 100, ids: int | List[int] = None,  search: str = None, filter: dict = {}) -> list[models.Metadata]:
     # check if we filter or search
