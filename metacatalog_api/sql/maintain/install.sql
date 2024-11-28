@@ -373,14 +373,14 @@ CREATE TABLE IF NOT EXISTS {schema}.details
 (
     id integer NOT NULL DEFAULT nextval('details_id_seq'::regclass),
     entry_id integer,
-    key character varying(60) COLLATE pg_catalog."default" NOT NULL,
-    stem character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    key text COLLATE pg_catalog."default" NOT NULL,
+    stem text COLLATE pg_catalog."default",
     title character varying COLLATE pg_catalog."default",
     raw_value jsonb NOT NULL,
     description character varying COLLATE pg_catalog."default",
     thesaurus_id integer,
     CONSTRAINT details_pkey PRIMARY KEY (id),
-    CONSTRAINT details_entry_id_stem_key UNIQUE (entry_id, stem),
+    CONSTRAINT details_entry_id_stem_key UNIQUE (entry_id, key),
     CONSTRAINT details_entry_id_fkey FOREIGN KEY (entry_id)
         REFERENCES {schema}.entries (id) MATCH SIMPLE
         ON UPDATE NO ACTION
@@ -489,3 +489,11 @@ CREATE TABLE IF NOT EXISTS {schema}.nm_entrygroups
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
 );
+
+CREATE TABLE {schema}.metacatalog_info
+(
+    db_version integer NOT NULL,
+    min_py_version character varying(64) COLLATE pg_catalog."default",
+    max_py_version character varying(64) COLLATE pg_catalog."default"
+);
+INSERT INTO {schema}.metacatalog_info (db_version) VALUES (1);
