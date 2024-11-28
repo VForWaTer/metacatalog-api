@@ -31,9 +31,23 @@ def get_db_version(cursor: Cursor) -> dict:
         return {'db_version': 0}
 
 def check_db_version(cursor: Cursor) -> bool:
+    """Verify that the database version matches the expected version.
+    
+    Args:
+        cursor: Database cursor for executing queries
+        
+    Raises:
+        ValueError: If database version doesn't match DB_VERSION constant
+
+    Returns:
+        bool: True if database version matches
+    """
     remote_db_version = get_db_version(cursor)['db_version']
     if remote_db_version != DB_VERSION:
-        raise ValueError(f"Database version mismatch. Expected {DB_VERSION}, got {remote_db_version}")
+        raise ValueError(
+            f"Database version mismatch. Expected {DB_VERSION}, got {remote_db_version}. "
+            "Please run database migrations to update your schema."
+        )
     return True
 
 def install(cursor: Cursor, schema: str = 'public', populate_defaults: bool = True) -> None:
