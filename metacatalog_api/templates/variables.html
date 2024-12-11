@@ -8,7 +8,8 @@
             </template>
         </select>
     </div>
-    <template x-if="selectedId !== ''">
+    <!-- <template x-if="selectedId !== ''"> --> 
+    <template x-if="selectedVariable">
         <div id="variable-details" class="mt-4">
             <input type="hidden" name="variable.id" :value="selectedVariable.id" />
             <table class="min-w-full divide-y divide-gray-200">
@@ -27,7 +28,7 @@
                         <tr>
                             <td 
                                 colspan="2" 
-                                x-text="selectedVariable.keyword.thesaurusName.title" 
+                                x-text="selectedVariable.keyword.thesaurus.title" 
                                 class="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider"
                             ></td>
                         </tr>
@@ -35,7 +36,7 @@
                     <template x-if="selectedVariable.keyword">
                         <tr>
                             <td colspan="2" class="px-6 py-4 font-xs whitespace-nowrap">
-                                <a :href="selectedVariable.keyword.thesaurusName.url" x-text="selectedVariable.keyword.path" target="_blank"></a>
+                                <a :href="selectedVariable.keyword.thesaurus.url" x-text="selectedVariable.keyword.full_path" target="_blank"></a>
                             </td>
                         </tr>
                     </template>
@@ -62,14 +63,17 @@
             async init () {
                 const resp = await fetch('/variables.json');
                 const data = await resp.json();
-                this.variables = data;
-                console.log(data);
+                this.variables = Alpine.raw(data);
+                // console.log(data);
             },
             loadVariable (variableId) {
                 const variable = this.variables.find(v => v.id === parseInt(variableId));
                 if (variable) {
                     this.selectedId = variable.id
-                    this.selectedVariable = variable;
+                    this.selectedVariable = JSON.parse(JSON.stringify(variable));
+                    // console.log(this.selectedId);
+                    // console.log(this.selectedVariable.keyword);
+                    
                 } else {
                     this.selectedId = '';
                     this.selectedVariable = null;
