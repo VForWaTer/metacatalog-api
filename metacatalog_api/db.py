@@ -1,16 +1,15 @@
-from typing import List, Dict
+from typing import List
 from pathlib import Path
-from uuid import uuid4
-import json
 
-from psycopg import Cursor
-from psycopg.errors import UndefinedTable
+from sqlmodel import Session, text
+from psycopg2.errors import UndefinedTable
 from pydantic_geojson import FeatureCollectionModel
+from pydantic import BaseModel
 
-from metacatalog_api.models import Author, Metadata, MetadataPayload, License, Variable, DataSource, DataSourceType
-from metacatalog_api import utils
+from metacatalog_api import models
+from sqlmodel import select, exists, col
 
-DB_VERSION = 1
+DB_VERSION = 2
 SQL_DIR = Path(__file__).parent / "sql"
 
 # helper function to load sql files
@@ -24,17 +23,19 @@ def load_sql(file_name: str) -> str:
 
 
 # helper function to check the database version
-def get_db_version(cursor: Cursor) -> dict:
+def get_db_version(session: Session) -> dict:
     try:
-        return cursor.execute("SELECT db_version FROM metacatalog_info order by db_version desc limit 1;").fetchone()
+        v = session.exec(text("SELECT db_version FROM metacatalog_info order by db_version desc limit 1;")).scalar() 
     except UndefinedTable:
-        return {'db_version': 0}
+        v = 0
+    return {'db_version': v}
 
-def check_db_version(cursor: Cursor) -> bool:
+
+def check_db_version(session: Session) -> bool:
     """Verify that the database version matches the expected version.
     
     Args:
-        cursor: Database cursor for executing queries
+        session: A SQLAlchemy session object
         
     Raises:
         ValueError: If database version doesn't match DB_VERSION constant
@@ -42,7 +43,7 @@ def check_db_version(cursor: Cursor) -> bool:
     Returns:
         bool: True if database version matches
     """
-    remote_db_version = get_db_version(cursor)['db_version']
+    remote_db_version = get_db_version(session)['db_version']
     if remote_db_version != DB_VERSION:
         raise ValueError(
             f"Database version mismatch. Expected {DB_VERSION}, got {remote_db_version}. "
@@ -50,78 +51,74 @@ def check_db_version(cursor: Cursor) -> bool:
         )
     return True
 
-def install(cursor: Cursor, schema: str = 'public', populate_defaults: bool = True) -> None:
+
+def install(session: Session, schema: str = 'public', populate_defaults: bool = True) -> None:
     # get the install script
     install_sql = load_sql(SQL_DIR / 'maintain' /'install.sql').format(schema=schema)
 
     # execute the install script
-    cursor.execute(install_sql)
+    session.exec(text(install_sql))
 
     # populate the defaults
     if populate_defaults:
         pupulate_sql = load_sql(SQL_DIR / 'maintain' / 'defaults.sql').replace('{schema}', schema)
-        cursor.execute(pupulate_sql)
+        session.exec(text(pupulate_sql))
 
 
-def check_installed(cursor: Cursor, schema: str = 'public') -> bool:
+def check_installed(session: Session, schema: str = 'public') -> bool:
     try:
-        info = cursor.execute(f"SELECT * FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = 'entries'").fetchone()
+        info = session.exec(text(f"SELECT * FROM information_schema.tables WHERE table_schema = '{schema}' AND table_name = 'entries'")).first() 
         return info is not None
     except Exception:
         return False
     
 
-def get_entries(session: Cursor, limit: int = None, offset: int = None, filter: Dict[str, str] = {}) -> List[Metadata]:
-    # build the filter
-    if len(filter.keys()) > 0:
-        expr = []
-        # handle whitespaces
-        for col, val in filter.items():
-            if '*' in val:
-                val = val.replace('*', '%')
-            if '%' in val:
-                expr.append(f"{col}  LIKE '{val}'")
-            else:
-                expr.append(f"{col}='{val}'")
-        # build the filter
-        filt = " WHERE " + " AND ".join(expr)
-    else:
-        filt = ""
+def get_entries(session: Session, limit: int = None, offset: int = None, variable: str | int = None, title: str = None) -> list[models.Metadata]:
+    # build the base query
+    sql = select(models.EntryTable)
+
+    # handle variable filter
+    if isinstance(variable, int):
+        sql = sql.join(models.VariableTable).where(models.VariableTable.id == variable)
+    elif isinstance(variable, str):
+        sql = sql.join(models.VariableTable).where(col(models.VariableTable.name).ilike(variable))
+    
+    # handle title filter
+    if title is not None:
+        sql = sql.where(col(models.EntryTable.title).ilike(title))
     
     # handle offset and limit
-    lim = f" LIMIT {limit} " if limit is not None else ""
-    off = f" OFFSET {offset} " if offset is not None else ""
-
-    # get the sql for the query
-    sql = load_sql("get_entries.sql").format(filter=filt, limit=lim, offset=off)
+    sql = sql.offset(offset).limit(limit)
 
     # execute the query
-    results = [r for r in session.execute(sql).fetchall()]
+    entries = session.exec(sql).all()  
 
-    return [Metadata(**result) for result in results]
+    return [models.Metadata.model_validate(entry) for entry in entries]
 
 
-def get_entries_by_id(session: Cursor, entry_ids: int | List[int], limit: int = None, offset: int = None) -> List[Metadata]:
+def get_entries_by_id(session: Session, entry_ids: int | list[int], limit: int = None, offset: int = None) -> list[models.Metadata] | models.Metadata:
+    # base query
+    sql = select(models.EntryTable)
+
+    # handle entry ids
     if isinstance(entry_ids, int):
-        entry_ids = [entry_ids]
-
-    # build the filter
-    filt = f"WHERE entries.id IN ({', '.join([str(e) for e in entry_ids])})"
+        sql = sql.where(models.EntryTable.id == entry_ids)
+    elif isinstance(entry_ids, (list, tuple)):
+        sql = sql.where(col(models.EntryTable.id).in_(entry_ids))
 
     # handle offset and limit
-    lim = f" LIMIT {limit} " if limit is not None else ""
-    off = f" OFFSET {offset} " if offset is not None else ""
-    
-    # get the sql for the query
-    sql = load_sql("get_entries.sql").format(filter=filt, limit=lim, offset=off)
+    sql = sql.offset(offset).limit(limit)
 
-    # execute the query
-    results = [r for r in session.execute(sql).fetchall()]
+    # run the query
+    entries = session.exec(sql).all()
 
-    return [Metadata(**result) for result in results]
+    if isinstance(entries, models.EntryTable):
+        return models.Metadata.model_validate(entries)
+    else:
+        return [models.Metadata.model_validate(entry) for entry in entries]
 
 
-def get_entries_locations(session: Cursor, ids: List[int] = None, limit: int = None, offset: int = None) -> FeatureCollectionModel:
+def get_entries_locations(session: Session, ids: List[int] = None, limit: int = None, offset: int = None) -> FeatureCollectionModel:
     # build the id filter
     if ids is None or len(ids) == 0:
         filt = ""
@@ -136,7 +133,7 @@ def get_entries_locations(session: Cursor, ids: List[int] = None, limit: int = N
     sql = load_sql("entries_locations.sql").format(filter=filt, limit=lim, offset=off)
 
     # execute the query
-    result = session.execute(sql).fetchone()['json_build_object']
+    result = session.exec(text(sql)).one()[0]
         
     if result['features'] is None:
         return dict(type="FeatureCollection", features=[])
@@ -144,13 +141,13 @@ def get_entries_locations(session: Cursor, ids: List[int] = None, limit: int = N
     return result
     
 
-class SearchResult:
+class SearchResult(BaseModel):
     id: int
-    matches: List[str]
-    weights: int
+    matches: list[str]
+    weight: int
 
 
-def search_entries(session: Cursor, search: str, limit: int = None, offset: int = None) -> List[SearchResult]:
+def search_entries(session: Session, search: str, limit: int = None, offset: int = None) -> list[SearchResult]:
     # build the limit and offset
     lim = f" LIMIT {limit} " if limit is not None else ""
     off = f" OFFSET {offset} " if offset is not None else ""
@@ -159,253 +156,251 @@ def search_entries(session: Cursor, search: str, limit: int = None, offset: int 
     sql = load_sql("search_entries.sql").format(prompt=search, limit=lim, offset=off)
 
     # execute the query
-    search_results = [r['search_meta'] for r in session.execute(sql).fetchall()]
+    mappings = session.exec(text(sql)).mappings().all()
+    result = [m['search_meta'] for m in mappings]
+    search_results = [SearchResult.model_validate(res) for res in result]
 
     return search_results
 
 
-def get_authors(session: Cursor, search: str = None, exclude_ids: List[int] = None, limit: int = None, offset: int = None) -> List[Author]:
-    # build the filter
-    filt = "" if search is None and exclude_ids is None else "WHERE "
+def get_authors(session: Session, search: str = None, exclude_ids: list[int] = None, limit: int = None, offset: int = None) -> List[models.Author]:
+    # build the base query
+    query = select(models.PersonTable)
+
+    # handle search
     if search is not None:
-        filt = f" last_name LIKE {search} OR first_name LIKE {search} OR organisation_name LIKE {search} "
+        search = search.replace('*', '%')
+        
+        query = query.where(
+            col(models.PersonTable.first_name).contains(search) |
+            col(models.PersonTable.last_name).contains(search) |
+            col(models.PersonTable.organisation_name).contains(search)
+        )
+    
+    # handle exclude
     if exclude_ids is not None:
-        if filt != "":
-            filt += " AND "
-        filt += f" id NOT IN ({', '.join([str(i) for i in exclude_ids])})"
+        query = query.where(
+            col(models.PersonTable.id).not_in(exclude_ids)
+        )
     
-    # handle limit and offset
-    lim = f" LIMIT {limit} " if limit is not None else ""
-    off = f" OFFSET {offset} " if offset is not None else ""
-    
-    # build the basic query
-    sql = "SELECT * FROM persons {filter} {offset} {limit};".format(filter=filt, offset=off, limit=lim)
+    # hanlde limit and offset
+    query = query.offset(offset).limit(limit)
 
+    # run
+    authors = session.exec(query).all()
+
+    return [models.Author.model_validate(author) for author in authors]
+
+
+def get_authors_by_entry(session: Session, entry_id: int) -> list[models.Author]:
+    query = (
+        select(models.PersonTable).where(models.PersonTable.id.in_(
+                select(models.EntryTable.author_id)
+                .where(models.EntryTable.id == entry_id)
+            )
+        ).union_all(
+            select(models.PersonTable).join(models.NMPersonEntries)
+            .where(models.NMPersonEntries.entry_id == entry_id)
+            .order_by(col(models.NMPersonEntries.order).asc()) 
+        )
+    )
+    authors = session.exec(query).all()
+
+    return [models.Author.model_validate(author) for author in authors]
+
+
+def get_author_by_id(session: Session, id: int) -> models.Author:   
     # execute the query
-    results = session.execute(sql).fetchall()
-
-    return [Author(**result) for result in results]
-
-def get_authors_by_entry(session: Cursor, entry_id: int) -> List[Author]:
-    # build the query
-    sql = load_sql("get_authors_by_entry.sql").format(entry_id=entry_id)
-
-    # execute the query
-    results = session.execute(sql).fetchall()
-
-    return [Author(**result) for result in results]
-
-def get_author_by_id(session: Cursor, id: int) -> Author:
-    # build the sql
-    sql = "SELECT * FROM persons WHERE id={id};".format(id=id)
-
-    # execute the query
-    author = session.execute(sql).fetchone()
+    author = session.exec(select(models.PersonTable).where(models.PersonTable.id == id)).first()
 
     if author is None:
-        return None
+        raise ValueError(f"Author with id {id} not found")
     else:
-        return Author(**author)
+        return models.Author.model_validate(author)
 
-def get_variables(session: Cursor, limit: int = None, offset: int = None) -> List[Variable]:
-    # build the filter
-    filt = ""
-    off = f" OFFSET {offset} " if offset is not None else ""
-    lim = f" LIMIT {limit} " if limit is not None else ""
+
+def get_variables(session: Session, limit: int = None, offset: int = None) -> list[models.Variable]:
+    variables = session.exec(
+        select(models.VariableTable).offset(offset).limit(limit)
+    )
+
+    return [models.Variable.model_validate(var) for var in variables]
+
     
-    # build the basic query
-    sql = load_sql('get_variables.sql').format(filter=filt, offset=off, limit=lim)
-
+def get_available_variables(session: Session, limit: int = None, offset: int = None) -> list[models.Variable]:
+    # build the query
+    query = select(models.VariableTable).where(
+        exists(select(models.EntryTable.id).where(models.EntryTable.variable_id == models.VariableTable.id))
+    ).offset(offset).limit(limit)
+    
     # execute the query
-    results = session.execute(sql).fetchall()
-    
-    # build the model
-    try:
-        variables = [Variable(**result) for result in results]
-    except Exception as e:
-        print(e)
-        raise e
-    
-    return variables
-    
-def get_available_variables(session: Cursor, limit: int = None, offset: int = None) -> List[Variable]:
-    # build the filter
-    filt = ""
-    off = f" OFFSET {offset} " if offset is not None else ""
-    lim = f" LIMIT {limit} " if limit is not None else ""
+    variables = session.exec(query).all()
 
-    # build the basic query
-    sql = load_sql('get_available_variables.sql').format(filter=filt, offset=off, limit=lim)
+    return [models.Variable.model_validate(var) for var in variables]
 
-    # execute the query
-    results = session.execute(sql).fetchall()
 
-    return [Variable(**result) for result in results]
+def get_variable_by_id(session: Session, id: int) -> models.Variable:
+    variable = session.get(models.VariableTable, id)
 
-def get_variable_by_id(session: Cursor, id: int) -> Variable:
-    # build the filter
-    filt = f" WHERE v.id={id}"
-    off = ""
-    lim = ""
-
-    # build the basic query
-    sql = load_sql('get_variables.sql').format(filter=filt, offset=off, limit=lim)
-
-    # execute the query
-    result = session.execute(sql).fetchone()
-
-    if result is None:
+    if variable is None:
         raise ValueError(f"Variable with id {id} not found")
-    else:
-        return Variable(**result)
-
-def get_licenses(session: Cursor, limit: int = None, offset: int = None) -> List[License]:
-    # build the filter
-    filt = ""
-    off = f" OFFSET {offset} " if offset is not None else ""
-    lim = f" LIMIT {limit} " if limit is not None else ""
     
-    # build the basic query
-    sql = load_sql('get_licenses.sql').format(filter=filt, limit=lim, offset=off)
+    return models.Variable.model_validate(variable)
 
-    # execute the query
-    results = session.execute(sql).fetchall()
 
-    return [License(**result) for result in results]
+def get_licenses(session: Session, limit: int = None, offset: int = None) -> List[models.License]:
+    # get the licenses
+    licenses = session.exec(
+        select(models.LicenseTable).offset(offset).limit(limit)
+    ).all()
 
-def get_license_by_id(session: Cursor, id: int) -> License:
-    # build the filter
-    filt = f" WHERE id={id}"
+    return [models.License.model_validate(lic) for lic in licenses]
 
-    # build the basic query
-    sql = load_sql('get_licenses.sql').format(filter=filt, offset='', limit='')
 
-    # execute the query
-    result = session.execute(sql).fetchone()
-
-    if result is None:
+def get_license_by_id(session: Session, id: int) -> models.License:
+    # get the one license in question
+    lic = session.get(models.LicenseTable, id)
+    if lic is None:
         raise ValueError(f"License with id {id} not found")
     else:
-        return License(**result)
+        return models.License.model_validate(lic)
 
-def get_entry_authors(session: Cursor, entry_id: int) -> List[Author]:
-    # build the query
-    sql = load_sql("get_entry_authors.sql").format(entry_id=entry_id)
 
-    # execute the query
-    results = session.execute(sql).all()
-
-    return [Author(**result) for result in results]
-
-def get_datatypes(session: Cursor, id: int = None) -> List[DataSourceType]:
-    # build the query
-    sql = "SELECT * FROM datasource_types"
-
+def get_datatypes(session: Session, id: int = None) -> list[models.DatasourceTypeBase]:
     # handle the id
     if id is not None:
-        sql += f" WHERE id={id}"
-    sql += ";"
+        sql = select(models.DatasourceTypeTable).where(models.DatasourceTypeTable.id == id)
+        type_ = session.exec(sql).one()
+        return models.DatasourceTypeBase.model_validate(type_)
+    else:
+        # get all the types
+        types = session.exec(select(models.DatasourceTypeTable)).all()
 
-    # execute the query
-    results = session.execute(sql).fetchall()
-
-    return [DataSourceType(**result) for result in results]
-
-
-def get_datasource_by_id(session: Cursor, id: int) -> DataSource:
-    # handle the filter
-    raise NotImplementedError
+        return [models.DatasourceTypeBase.model_validate(type_) for type_ in types]
 
 
-def add_entry(session: Cursor, payload: MetadataPayload) -> Metadata:
-   # execute the query
-    insert_payload = utils.dict_to_pg_payload(payload.model_dump())
+# def get_datasource_by_id(session: Cursor, id: int) -> models.Datasource:
+#     # handle the filter
+#     raise NotImplementedError
 
-    # fill out a few fields
-    # get the sql for inserting a new entry
-    sql = load_sql('insert_entry.sql').format(**insert_payload)
 
-    # execute the query
-    entry_id = session.execute(sql).fetchone()['id']
-
-    # add the first author
-    insert_author = load_sql('insert_author_to_entry.sql')
+def add_entry(session: Session, payload: models.EntryCreate) -> models.Metadata:
+    # grab the keywords
+    if payload.keywords is not None and len(payload.keywords) > 0:
+        sql = select(models.KeywordTable).where(col(models.KeywordTable.id).in_(payload.keywords))
+        keywords =  session.exec(sql).all()
+    else:
+        keywords = []
     
-    # add a uuid if there is none
-    if payload.author.uuid is None:
-        payload.author.uuid = uuid4()
-    author_payload = utils.dict_to_pg_payload(payload.author.model_dump())
-    session.execute(insert_author.format(entry_id=entry_id, role="'author'", order=1, **author_payload))
+    # add or set the author
+    if isinstance(payload.author, int):
+        author = session.get(models.PersonTable, payload.author)
+    else:
+        author = models.PersonTable.model_validate(payload.author)
+    
+    # handle co-authors
+    if payload.coAuthors is None or len(payload.coAuthors) == 0:
+        coAuthors = []
+    else:
+        coAuthors = []
+        for coAuthor in payload.coAuthors:
+            if isinstance(coAuthor, int):
+                coAuthors.append(session.get(models.PersonTable, coAuthor))
 
-    # add co-authors
-    if payload.authors is not None and len(payload.authors) > 1:
-        for author, idx in enumerate(payload.authors[1:]):
-            if author.uuid is None:
-                author.uuid = uuid4()
-            author_payload = utils.dict_to_pg_payload(author.model_dump())
-            session.execute(insert_author.format(entry_id=entry_id, role="'coAuthor'", order=idx + 2, **author_payload))
-
-    # add the details
-    if payload.details is not None and len(payload.details) > 0:
-        detail_sql = load_sql('insert_detail_to_entry.sql')
-        for detail in payload.details:
-            # handle the data type
-            # TODO: here we remove the decrecated fields 'title' and 'description' - this can be cleaned up when we update the database
-            detail_payload = utils.dict_to_pg_payload({k: i for k, i in detail.model_dump().items() if k not in  ['value', 'title', 'descripttion']})
-            
-            # handle literals
-            if isinstance(detail.value, dict):
-                detail_payload['raw_value'] = detail.value
             else:
-                detail_payload['raw_value'] = "'" + json.dumps({"__literal__": detail.value}) + "'"
-            session.execute(detail_sql.format(entry_id=entry_id, **detail_payload))
-
-    # TODO: add the keywords
+                coAuthors.append(models.PersonTable.model_validate(coAuthor))
     
-    # load the entry from the database
-    entry = get_entries_by_id(session, entry_ids=entry_id)[0]
-    return entry
-
-def add_datasource(session: Cursor, entry_id: int, datasource: DataSource) -> int:
-    # get the insert payload
-    insert_payload = utils.dict_to_pg_payload(datasource.model_dump())
-    
-    # we have to handle all optional settings to avoid errors on formatting the SQL
-    if 'temporal_scale' not in insert_payload or insert_payload['temporal_scale'] == 'NULL':
-        insert_payload['temporal_scale'] = {
-            'resolution': 'NULL',
-            'observation_start': 'NULL',
-            'observation_end': 'NULL',
-            'support': 'NULL',
-            'dimension_names': 'NULL'
-        }
+    # handle license
+    if isinstance(payload.license, int):
+        license = session.get(models.LicenseTable, payload.license)
     else:
-        insert_payload['temporal_scale'] = {
-            'resolution': f"'{insert_payload['temporal_scale']['resolution']}'",
-            'observation_start': f"'{insert_payload['temporal_scale']['extent'][0]}'", 
-            'observation_end': f"'{insert_payload['temporal_scale']['extent'][1]}'",
-            'support': insert_payload['temporal_scale']['support'],
-            'dimension_names': insert_payload['temporal_scale']['dimension_names']
-            }
-    if 'spatial_scale' not in insert_payload or insert_payload['spatial_scale'] == 'NULL':
-        insert_payload['spatial_scale'] = {
-            'resolution': 'NULL',
-            'extent': 'NULL',
-            'support': 'NULL',
-            'dimension_names': 'NULL'
-        }
-    
-    if datasource.args is not None:
-        insert_payload['args'] = f"'{json.dumps(datasource.args)}'"
+        license = models.LicenseCreate.model_validate(payload.license)
+
+    # create the table entry
+    entry = models.EntryTable(
+        title=payload.title,
+        abstract=payload.abstract,
+        external_id=payload.external_id,
+        #location=payload.location,
+        version=payload.version,
+        is_partial=payload.is_partial,
+        comment=payload.comment,
+        citation=payload.citation,
+        #embargo=payload.embargo,
+        #embargo_end=payload.embargo_end,
+        license=license,
+        variable_id=payload.variable,
+        author=author,
+        coAuthors=coAuthors,
+        keywords=keywords
+    )
+    if payload.location is not None:
+        entry.location = models.EntryTable.validate_location(payload.location, None)
+
+    # add
+    session.add(entry)
+    session.commit()
+
+        # build the details
+    if payload.details is not None and len(payload.details) > 0:
+        details = []
+        for d in payload.details:
+            details.append(models.DetailTable(
+                key=d.key, 
+                raw_value=d.raw_value,
+                entry_id=entry.id,
+                thesaurus_id=d.thesaurus,
+                title=d.title,
+                description=d.description
+            ))
+        entry.details = details
+        session.add(entry)
+        session.commit()
+
+    # refresh the entry object and validate the Metadata model
+    session.refresh(entry)
+    return models.Metadata.model_validate(entry)
+
+
+def add_datasource(session: Session, entry_id: int, datasource: models.DatasourceCreate) -> models.Metadata:
+    # get the entry
+    entry = session.get(models.EntryTable, entry_id)
+    if entry is None:
+        raise ValueError(f"Entry with id {entry_id} not found")
+    # look up the datasource type
+    if isinstance(datasource.type, str):
+        sql = select(models.DatasourceTypeTable.id).where(col(models.DatasourceTypeTable.name) == datasource.type)
     else:
-        insert_payload['args'] = '{}'
-
-    # get the sql for inserting a new datasource
-    sql = load_sql('insert_datasource.sql').format(**insert_payload, entry_id=entry_id)
-
-    # execute the query
-    datasource_id = session.execute(sql).fetchone()
+        sql = select(models.DatasourceTypeTable.id).where(models.DatasourceTypeTable.id == datasource.type)
+    datasource_type_id = session.exec(sql).one()
     
-    # return datasource
-    return datasource_id['datasource_id']
+    # check if a temporal scale is provided
+    if datasource.temporal_scale is not None:
+        temporal_scale = models.TemporalScaleTable.model_validate(datasource.temporal_scale)
+    else:
+        temporal_scale = None
+    
+    # check if a spatial scale is provided
+    if datasource.spatial_scale is not None:
+        spatial_scale = models.SpatialScaleTable.model_validate(datasource.spatial_scale)
+    else:
+        spatial_scale = None
 
+    # create the table entry
+    datasource = models.DatasourceTable(
+        path=datasource.path,
+        encoding=datasource.encoding,
+        type_id=datasource_type_id,
+        args=datasource.args if datasource.args is not None else {},
+        temporal_scale=temporal_scale,
+        spatial_scale=spatial_scale,
+        variable_names=datasource.variable_names if datasource.variable_names is not None else []
+    )
+
+    # add the datasource
+    entry.datasource = datasource
+    session.add(entry)
+    session.commit()
+
+    session.refresh(entry)
+    return models.Metadata.model_validate(entry)
