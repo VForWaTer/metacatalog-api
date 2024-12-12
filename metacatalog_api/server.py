@@ -5,11 +5,11 @@ import logging
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import core
 from metacatalog_api.views import editing_tools
-# from metacatalog_api import utils
 from metacatalog_api import models
 
 
@@ -204,12 +204,8 @@ def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Me
     metadata = core.add_datasource(entry_id=entry_id, payload=payload)
     return metadata
 
-
-@app.get('/js/metacatalog.js')
-def get_metacatalog_is(request: Request):
-    # return the metacatalog.js file for all client applications
-    return templates.TemplateResponse(request=request, name="metacatalog.js", context={})
-
+# add static files
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "templates" / "static"), name="static")
 
 # register the editing tools
 app.include_router(editing_tools.edit_router, prefix='/utils')

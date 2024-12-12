@@ -86,5 +86,5 @@
 {% set embedded = request.query_params.get('embedded') == 'true' %}
 {% if not embedded %}
     <script src="//unpkg.com/alpinejs"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
 {% endif %}
