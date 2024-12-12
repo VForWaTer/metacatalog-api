@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS {schema}.datasources
     path character varying COLLATE pg_catalog."default" NOT NULL,
     data_names character varying(128)[] COLLATE pg_catalog."default",
     variable_names character varying(128)[] COLLATE pg_catalog."default",
-    args character varying COLLATE pg_catalog."default",
+    args JSONB COLLATE pg_catalog."default",
     temporal_scale_id integer,
     spatial_scale_id integer,
     creation timestamp without time zone,
@@ -328,6 +328,7 @@ CREATE TABLE IF NOT EXISTS {schema}.entries
     abstract character varying COLLATE pg_catalog."default",
     external_id character varying COLLATE pg_catalog."default",
     location geometry(Point,4326),
+    author_id integer,
     version integer NOT NULL,
     latest_version_id integer,
     is_partial boolean NOT NULL,
@@ -345,6 +346,10 @@ CREATE TABLE IF NOT EXISTS {schema}.entries
         REFERENCES {schema}.datasources (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION,
+    CONSTRAINT entries_author_id_fkey FOEREIGN KEY (author_id)
+        REFERENCES {schema}.persons (id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE SET NULL,
     CONSTRAINT entries_latest_version_id_fkey FOREIGN KEY (latest_version_id)
         REFERENCES {schema}.entries (id) MATCH SIMPLE
         ON UPDATE NO ACTION
