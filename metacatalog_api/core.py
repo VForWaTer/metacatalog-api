@@ -153,7 +153,7 @@ def add_entry(payload: models.EntryCreate) -> models.Metadata:
         # check if there was a datasource
         if payload.datasource is not None:
             entry = db.add_datasource(session, entry_id=entry.id, datasource=payload.datasource)
-    
+        session.commit()
     return entry
 
 def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Metadata:
