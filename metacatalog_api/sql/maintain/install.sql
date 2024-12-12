@@ -346,7 +346,7 @@ CREATE TABLE IF NOT EXISTS {schema}.entries
         REFERENCES {schema}.datasources (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION,
-    CONSTRAINT entries_author_id_fkey FOEREIGN KEY (author_id)
+    CONSTRAINT entries_author_id_fkey FOREIGN KEY (author_id)
         REFERENCES {schema}.persons (id) MATCH SIMPLE
         ON UPDATE CASCADE
         ON DELETE SET NULL,
