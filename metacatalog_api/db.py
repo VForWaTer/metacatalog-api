@@ -372,7 +372,11 @@ def add_datasource(session: Session, entry_id: int, datasource: models.Datasourc
         sql = select(models.DatasourceTypeTable.id).where(col(models.DatasourceTypeTable.name) == datasource.type)
     else:
         sql = select(models.DatasourceTypeTable.id).where(models.DatasourceTypeTable.id == datasource.type)
-    datasource_type_id = session.exec(sql).one()
+    
+    # get the datasource type id
+    datasource_type_id = session.exec(sql).first()
+    if datasource_type_id is None:
+        raise ValueError(f"Datasource type with name or id {datasource.type} was not found in the database")
     
     # check if a temporal scale is provided
     if datasource.temporal_scale is not None:
