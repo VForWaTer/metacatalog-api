@@ -50,7 +50,7 @@ def migrate_db(schema: str = 'public') -> None:
             
             # update the db version
             session.exec(text(f"INSERT INTO metacatalog_info (db_version) VALUES ({current_version + 1});")) 
-
+            session.commit()
         # inform the user
         print(f"Migrated database from version {current_version} to {current_version + 1}")
         
@@ -150,9 +150,9 @@ def add_entry(payload: models.EntryCreate) -> models.Metadata:
     with connect() as session:
         entry = db.add_entry(session, payload=payload)
     
-    # check if there was a datasource
-    if payload.datasource is not None:
-        entry = db.add_datasource(entry.id, payload.datasource)
+        # check if there was a datasource
+        if payload.datasource is not None:
+            entry = db.add_datasource(session, entry_id=entry.id, datasource=payload.datasource)
     
     return entry
 
