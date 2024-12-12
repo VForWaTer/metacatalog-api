@@ -20,7 +20,7 @@
                     <td>
                         <input type="hidden" :name="`details.${index + 1}.key`" :value="detail.key">
                         <input type="hidden" :name="`details.${index + 1}.stem`" :value="detail.stem">
-
+                        <input type="hidden" :name="`details.${index + 1}.type`" :value="detail.type">
                         <input type="hidden" :name="`details.${index + 1}.value`" :value="detail.value">
                     </td>
                 </tr>
@@ -70,7 +70,8 @@
                     this.details.push({ 
                         key: this.newDetail.key, 
                         stem: stemmedKey, 
-                        value: this.newDetail.value 
+                        value: this.newDetail.value,
+                        type: this.newDetail.valueType
                     });
                     
                     this.newDetail = { key: '', value: '', valueType: 'text' };

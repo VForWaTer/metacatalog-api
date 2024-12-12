@@ -104,7 +104,7 @@ function authorTable() {
 
         addAuthor() {
             if ((this.newAuthor.first_name && this.newAuthor.last_name) || this.newAuthor.organisation_name) {
-                this.authors.push({...this.newAuthor, id: Date.now()}); // Use timestamp as temporary id
+                this.authors.push({...this.newAuthor, id: -1}); // use -1 as id for newly created
                 this.newAuthor = { first_name: '', last_name: '', organisation_name: '', organisation_abbrev: '', affiliation: '', is_organisation: false };
             }
         },
