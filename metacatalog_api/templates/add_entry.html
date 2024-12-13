@@ -1,4 +1,4 @@
-<form hx-post="/entries" hx-swap="afterbegin" >
+<div id="form" x-data="formContext()">
     <div x-data="{open: true}">
         <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open">
             <h2 class="text-lg font-medium text-gray-700">Metadata</h2>
@@ -60,7 +60,7 @@
         <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
 
             <div class="flex flex-col space-y-2">
-                <div hx-get="/licenses.html" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="/licenses.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
 
         </div>
@@ -83,24 +83,85 @@
     <div hx-get="/datasources/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
 
     <!-- Add the submit button here -->
-    <div class="mt-6 flex justify-end">
-        <button type="submit" class="px-4 py-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+    <div class="my-4">
+        <template x-if="errors.length > 0">
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong class="font-bold">Please correct the following errors:</strong>
+                <span class="block sm:inline">
+                    <ul>
+                        <template x-for="error in errors" :key="error">
+                            <li x-text="error"></li>
+                        </template>
+                    </ul>
+                </span>
+            </div>
+        </template>
+    </div>
+    <div class="my-6 flex justify-end">
+        <!-- Badge indicating validation status -->
+        <div x-show="isValid" class="mx-8 px-4 py-2 rounded-md text-green-500 bg-green-100 ring-green-500">
+            Metadata valid
+        </div>
+        <div x-show="!isValid" class="mx-8 px-4 py-2 rounded-md text-red-500 bg-red-100 ring-red-500">
+            Metadata invalid
+        </div>
+    
+        <!-- Save Entry Button -->
+        <button @click="submit()" class="mr-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" :class="{'opacity-50 cursor-not-allowed': !isValid}">
             Save Entry
         </button>
-    </div>    
+    </div>
+</div>
+<script>
+    // define a function to submit the form to the backend - this can be changed as needed
+    // the core functions are in metacatalog.js
+    function formContext() {
+        return {
+            errors: [],
+            isValid: false,
+            init: () => {
+                setInterval(() => {
+                    const entry = getEntry()
+                    this.errors = [...getValidationErrors(entry)]
+                    this.isValid = isValidEntry(entry)
+                }, 500)
+            },
+            submit: () => {
+                const entry = getEntry()
+                sendEntry(entry, {url: '/entries'})
+                .then(response => {
+                    console.log(response)
+                    alert(`You can navigate away now. This behavior will be changed.\n\nRESPONSE:\n${JSON.stringify(response, null, 2)}`)
+                })
+                .catch(err => {
+                    console.log(err)
+                    alert(err)
+                })
+            },
+            validate: () => {
+                const entry = getEntry()
+                this.errors = getValidationErrors(entry)
+                this.isValid = isValidEntry(entry)
+            }
+        }
+    }
+</script>
 
-</form>
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+    <script src="/static/metacatalog.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
+    <!-- leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/htmx.org@2.0.2"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-<script src="//unpkg.com/alpinejs" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
-<!-- leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
-<style>
-    [x-cloak] { display: none !important; }
-</style>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+{% endif %}

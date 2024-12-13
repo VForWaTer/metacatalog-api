@@ -3,8 +3,11 @@ pydantic
 Jinja2
 python-dotenv
 uvicorn
-psycopg[binary]
 pydantic-geojson
 python-multipart
 dateparser
-polars
+sqlmodel
+geoalchemy2
+psycopg2-binary
+shapely
+ipython

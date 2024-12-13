@@ -38,4 +38,8 @@
         </div>
     </div>
 </div>
-<script src="https://cdn.tailwindcss.com"></script>
+
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
+{% endif %}

@@ -20,7 +20,7 @@
                     <td>
                         <input type="hidden" :name="`details.${index + 1}.key`" :value="detail.key">
                         <input type="hidden" :name="`details.${index + 1}.stem`" :value="detail.stem">
-
+                        <input type="hidden" :name="`details.${index + 1}.type`" :value="detail.type">
                         <input type="hidden" :name="`details.${index + 1}.value`" :value="detail.value">
                     </td>
                 </tr>
@@ -70,7 +70,8 @@
                     this.details.push({ 
                         key: this.newDetail.key, 
                         stem: stemmedKey, 
-                        value: this.newDetail.value 
+                        value: this.newDetail.value,
+                        type: this.newDetail.valueType
                     });
                     
                     this.newDetail = { key: '', value: '', valueType: 'text' };
@@ -85,6 +86,6 @@
 {% set embedded = request.query_params.get('embedded') == 'true' %}
 {% if not embedded %}
     <script src="//unpkg.com/alpinejs" defer></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
 {% endif %}

@@ -2,11 +2,18 @@ from typing import Dict, Any
 from datetime import datetime as dt
 from datetime import timedelta as td
 from uuid import UUID
-import json
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from dateparser import parse as dateparse
 
-from metacatalog_api import models
+from metacatalog_api import models as models
+from metacatalog_api.__version__ import __version__
+
+ABSTRACT = f"""
+This entry has no abstract. It is highly recommended to describe Metadata in a 
+human readable abstract. This template was created using metacatalog-api version {__version__}.
+"""
 
 def flatten_to_nested(flat_dict: Dict[str, str]) -> Dict[str, Any]:
     """
@@ -90,6 +97,7 @@ def separate_string_list(string_list: str) -> list[str]:
 
     return sanitized
 
+
 def dict_to_pg_payload(payload: dict) -> dict:
     """
 
@@ -117,24 +125,41 @@ def dict_to_pg_payload(payload: dict) -> dict:
     return insert_payload
 
 
-def metadata_payload_to_model(payload: dict) -> models.MetadataPayload:
+def metadata_payload_to_model(payload: dict) -> models.EntryTable:
     """
     Converts a payload dictionary to a Metadata model.
     """
     # create the payload
     payload = flatten_to_nested(payload)
-    
-    # extract the license
-    license = models.License(
-        id=payload['license_id'],
-        by_attribution=payload['license'].get('by_attribution'),
-        share_alike=payload['license'].get('share_alike'), 
-        commercial_use=payload['license'].get('commercial_use'), 
-        short_title=payload['license']['short_title'],
-        title=payload['license']['title'],
-        summary=payload['license']['summary'],
-        link=payload['license']['link'],
+
+    # meta-value
+    now = datetime.now()
+    meta = models.EntryTable(
+        title=payload['title'],
+        abstract=payload.get('abstract', ABSTRACT),
+        external_id=payload.get('external_id'),
+        version=1,
+        is_partial=False,
+        comment=payload.get('comment'),
+        citation=payload.get('citation'),
+        embargo=payload.get('embargo', False),
+        embargo_end=payload.get('embargo_end', now + relativedelta(days=2*365)),
+        publication=now,
+        lastUpdate=now
     )
+    
+    # get the license infor
+    if 'license_id' in payload and payload['license_id'] is not None:
+        meta.license_id = int(payload['license_id'])
+    elif 'license' in payload:
+        # add a new license
+        meta.license = models.LicenseTable(**payload['license'])
+    else:
+        meta.license_id = None
+
+    # handle the variable
+    #HIER WEITER
+
 
     # extract the variable
     variable = models.Variable(**payload.pop('variable'))
@@ -186,7 +211,7 @@ def metadata_payload_to_model(payload: dict) -> models.MetadataPayload:
     return meta
 
 
-def datasource_payload_to_model(payload: dict) -> models.DataSource:
+def datasource_payload_to_model(payload: dict) -> models.Datasource:
     # create the payload
     payload = flatten_to_nested(payload)
 
