@@ -147,20 +147,32 @@ class SearchResult(BaseModel):
     weight: int
 
 
-def search_entries(session: Session, search: str, limit: int = None, offset: int = None) -> list[SearchResult]:
+def search_entries(session: Session, search: str, full_text: bool = True, limit: int = None, offset: int = None, variable: int | str = None) -> list[SearchResult]:
     # build the limit and offset
     lim = f" LIMIT {limit} " if limit is not None else ""
     off = f" OFFSET {offset} " if offset is not None else ""
+    filt = ""
 
+    # handle variable filter
+    if isinstance(variable, int):
+        filt = f" WHERE entries.variable_id = {variable} "
+    elif isinstance(variable, str):
+        variable = get_variables(session, name=variable)
+        filt = f" WHERE entries.variable_id in ({', '.join([str(v.id) for v in variable])}) "
+
+    # handle full text search
+    if full_text:
+        search = '&'.join(search.split(' '))
+        base_query = "ftl_search_entries.sql"
+    else:
+        base_query = "search_entries.sql"
     # get the sql for the query
-    sql = load_sql("search_entries.sql").format(prompt=search, limit=lim, offset=off)
+    sql = load_sql(base_query).format(prompt=search, limit=lim, offset=off, filter=filt)
 
     # execute the query
     mappings = session.exec(text(sql)).mappings().all()
-    result = [m['search_meta'] for m in mappings]
-    search_results = [SearchResult.model_validate(res) for res in result]
 
-    return search_results
+    return mappings
 
 
 def get_authors(session: Session, search: str = None, exclude_ids: list[int] = None, limit: int = None, offset: int = None) -> List[models.Author]:
@@ -219,10 +231,12 @@ def get_author_by_id(session: Session, id: int) -> models.Author:
         return models.Author.model_validate(author)
 
 
-def get_variables(session: Session, limit: int = None, offset: int = None) -> list[models.Variable]:
-    variables = session.exec(
-        select(models.VariableTable).offset(offset).limit(limit)
-    )
+def get_variables(session: Session, limit: int = None, offset: int = None, name: str = None) -> list[models.Variable]:
+    # build the query
+    query = select(models.VariableTable)
+    if name is not None:
+        query = query.where(col(models.VariableTable.name).ilike(name))
+    variables = session.exec(query.offset(offset).limit(limit))
 
     return [models.Variable.model_validate(var) for var in variables]
 
