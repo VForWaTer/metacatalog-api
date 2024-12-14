@@ -52,14 +52,14 @@ def index(request: Request):
 
 @app.get('/entries')
 @app.get('/entries.{fmt}')
-def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int = 100, search: str = None, title: str = None, variable: str = None):
+def get_entries(request: Request, fmt: FMT = None, offset: int = 0, limit: int = 100, search: str = None, full_text: bool = True, title: str = None, description: str = None, variable: str = None):
 
     # sanitize the search
     if search is not None and search.strip() == '':
         search = None
 
     # call the function
-    entries = core.entries(offset, limit, search=search,  title=title, variable=variable) 
+    entries = core.entries(offset, limit, search=search, full_text=full_text, title=title, variable=variable) 
     
     # check if we should return html
     if fmt == 'html':
