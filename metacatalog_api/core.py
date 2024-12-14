@@ -58,11 +58,11 @@ def migrate_db(schema: str = 'public') -> None:
         migrate_db()
         
 
-def entries(offset: int = 0, limit: int = None, ids: int | List[int] = None,  search: str = None, variable: str | int = None, title: str = None) -> list[models.Metadata]:
+def entries(offset: int = 0, limit: int = None, ids: int | List[int] = None, full_text: bool = True, search: str = None, variable: str | int = None, title: str = None) -> list[models.Metadata]:
     # check if we filter or search
     with connect() as session:
         if search is not None:
-            search_results = db.search_entries(session, search, limit=limit, offset=offset, variable=variable, full_text=True)
+            search_results = db.search_entries(session, search, limit=limit, offset=offset, variable=variable, full_text=full_text)
 
             if len(search_results) == 0:
                 return []
