@@ -152,25 +152,30 @@ def search_entries(session: Session, search: str, full_text: bool = True, limit:
     lim = f" LIMIT {limit} " if limit is not None else ""
     off = f" OFFSET {offset} " if offset is not None else ""
     filt = ""
-
+    params = {"lim": lim, "off": off}
     # handle variable filter
     if isinstance(variable, int):
-        filt = f" WHERE entries.variable_id = {variable} "
+        filt = " WHERE entries.variable_id = :variable "
+        params["variable"] = variable
     elif isinstance(variable, str):
         variable = get_variables(session, name=variable)
-        filt = f" WHERE entries.variable_id in ({', '.join([str(v.id) for v in variable])}) "
+        filt = " WHERE entries.variable_id in (:variabe) "
+        params["variable"] = [v.id for v in variable]
 
     # handle full text search
     if full_text:
         search = '&'.join(search.split(' '))
+        params["prompt"] = search
         base_query = "ftl_search_entries.sql"
     else:
         base_query = "search_entries.sql"
+        params["prompt"] = search
     # get the sql for the query
-    sql = load_sql(base_query).format(prompt=search, limit=lim, offset=off, filter=filt)
+    sql = load_sql(base_query).format(limit=lim, offset=off, filter=filt)
+    #sql = load_sql(base_query)
 
     # execute the query
-    mappings = session.exec(text(sql)).mappings().all()
+    mappings = session.exec(text(sql), params=params).mappings().all()
 
     return mappings
 
