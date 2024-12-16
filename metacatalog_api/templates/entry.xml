@@ -9,4 +9,7 @@
     <License link="{{ entry.license.link }}">
         {{ entry.license.summary }}
     </License>
+    <Keyword>
+        {{ entry.variable.keyword.path }}
+    </Keyword>
 </Metadata>

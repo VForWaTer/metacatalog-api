@@ -3,6 +3,7 @@ from pathlib import Path
 
 from sqlmodel import Session, text
 from psycopg2.errors import UndefinedTable
+from sqlalchemy.exc import ProgrammingError
 from pydantic_geojson import FeatureCollectionModel
 from pydantic import BaseModel
 
@@ -28,6 +29,11 @@ def get_db_version(session: Session) -> dict:
         v = session.exec(text("SELECT db_version FROM metacatalog_info order by db_version desc limit 1;")).scalar() 
     except UndefinedTable:
         v = 0
+    except ProgrammingError as e:
+        if 'relation "metacatalog_info"' in str(e):
+            v = 0
+        else:
+            raise e
     return {'db_version': v}
 
 
