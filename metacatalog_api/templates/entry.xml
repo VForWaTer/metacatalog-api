@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<Metadata>
-    <Title>{{ entry.title }}</Title>
+<ns2:radarDataset xmlns="http://radar-service.eu/schemas/descriptive/radar/v09/radar-elements" xmlns:ns2="http://radar-service.eu/schemas/descriptive/radar/v09/radar-dataset" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://radar-service.eu/schemas/descriptive/radar/v09/radar-elements https://www.radar-service.eu/schemas/descriptive/radar/v9.1/RadarElements.xsd http://radar-service.eu/schemas/descriptive/radar/v09/radar-dataset https://www.radar-service.eu/schemas/descriptive/radar/v9.1/RadarDataset.xsd ">
+    <title>{{ entry.title }}</title>
+    <alternateIdentifiers>
+        <alternateIdentifier alternateIdentifierType="UUID4" url="https://example.com">
+            {{ entry.uuid }}
+        </alternateIdentifier>
+    </alternateIdentifiers>
+    <description descriptionType="Abstract">
+        {{ entry.abstract }}
+    </description>
+    
+    
+    
+    
     <Version>{{ entry.version }}</Version>
     <ExternalId>{{ entry.external_id }}</ExternalId>
-    <Abstract>
-        {{ entry.abstract }}
-    </Abstract>
+    <descriptions>
+
+</descriptions>
     <License link="{{ entry.license.link }}">
         {{ entry.license.summary }}
     </License>
     <Keyword>
         {{ entry.variable.keyword.path }}
     </Keyword>
-</Metadata>
+</ns2:radarDataset>
