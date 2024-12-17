@@ -24,9 +24,9 @@ def load_sql(file_name: str) -> str:
 
 
 # helper function to check the database version
-def get_db_version(session: Session) -> dict:
+def get_db_version(session: Session, schema: str = 'public') -> dict:
     try:
-        v = session.exec(text("SELECT db_version FROM metacatalog_info order by db_version desc limit 1;")).scalar() 
+        v = session.exec(text(f"SELECT db_version FROM {schema}.metacatalog_info order by db_version desc limit 1;")).scalar() 
     except UndefinedTable:
         v = 0
     except ProgrammingError as e:
@@ -37,7 +37,7 @@ def get_db_version(session: Session) -> dict:
     return {'db_version': v}
 
 
-def check_db_version(session: Session) -> bool:
+def check_db_version(session: Session, schema: str = 'public') -> bool:
     """Verify that the database version matches the expected version.
     
     Args:
@@ -49,7 +49,7 @@ def check_db_version(session: Session) -> bool:
     Returns:
         bool: True if database version matches
     """
-    remote_db_version = get_db_version(session)['db_version']
+    remote_db_version = get_db_version(session, schema=schema)['db_version']
     if remote_db_version != DB_VERSION:
         raise ValueError(
             f"Database version mismatch. Expected {DB_VERSION}, got {remote_db_version}. "
@@ -64,11 +64,17 @@ def install(session: Session, schema: str = 'public', populate_defaults: bool = 
 
     # execute the install script
     session.exec(text(install_sql))
+    session.commit()
 
     # populate the defaults
     if populate_defaults:
-        pupulate_sql = load_sql(SQL_DIR / 'maintain' / 'defaults.sql').replace('{schema}', schema)
-        session.exec(text(pupulate_sql))
+        populate_sql = load_sql(SQL_DIR / 'maintain' / 'defaults.sql').replace('{schema}', schema)
+        session.exec(text(populate_sql))
+        session.commit()
+    
+    # set the current version to the remote database
+    session.exec(text(f"INSERT INTO {schema}.metacatalog_info (db_version) VALUES ({DB_VERSION});"))
+    session.commit()
 
 
 def check_installed(session: Session, schema: str = 'public') -> bool:

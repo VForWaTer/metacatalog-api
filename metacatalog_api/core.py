@@ -37,7 +37,7 @@ def get_session(url: str = None) -> Session:
 def migrate_db(schema: str = 'public') -> None:
     # get the current version
     with connect() as session:
-        current_version = db.get_db_version(session)['db_version']
+        current_version = db.get_db_version(session, schema=schema)['db_version']
     
     # as long as the local _DB_VERSION is higher than the remote version, we can load a migration
     if current_version < db.DB_VERSION:
@@ -49,7 +49,7 @@ def migrate_db(schema: str = 'public') -> None:
             session.exec(text(migration_sql))
             
             # update the db version
-            session.exec(text(f"INSERT INTO metacatalog_info (db_version) VALUES ({current_version + 1});")) 
+            session.exec(text(f"INSERT INTO {schema}.metacatalog_info (db_version) VALUES ({current_version + 1});")) 
             session.commit()
         # inform the user
         print(f"Migrated database from version {current_version} to {current_version + 1}")

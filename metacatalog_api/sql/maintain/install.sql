@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS {schema}.datasources
     path character varying COLLATE pg_catalog."default" NOT NULL,
     data_names character varying(128)[] COLLATE pg_catalog."default",
     variable_names character varying(128)[] COLLATE pg_catalog."default",
-    args JSONB COLLATE pg_catalog."default",
+    args JSONB,
     temporal_scale_id integer,
     spatial_scale_id integer,
     creation timestamp without time zone,
@@ -498,7 +498,7 @@ CREATE TABLE IF NOT EXISTS {schema}.nm_entrygroups
 CREATE TABLE {schema}.metacatalog_info
 (
     db_version integer NOT NULL,
-    min_py_version character varying(64) COLLATE pg_catalog."default",
-    max_py_version character varying(64) COLLATE pg_catalog."default"
+    min_py_version character varying(64),
+    max_py_version character varying(64),
+    CONSTRAINT metacatalog_info_pkey PRIMARY KEY (db_version)
 );
-INSERT INTO {schema}.metacatalog_info (db_version) VALUES (1);
