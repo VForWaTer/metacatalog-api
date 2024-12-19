@@ -235,7 +235,7 @@ CREATE TABLE IF NOT EXISTS {schema}.datasources
 (
     id integer NOT NULL DEFAULT nextval('datasources_id_seq'::regclass),
     type_id integer NOT NULL,
-    datatype_id integer NOT NULL,
+    datatype_id integer,
     encoding character varying(64) COLLATE pg_catalog."default",
     path character varying COLLATE pg_catalog."default" NOT NULL,
     data_names character varying(128)[] COLLATE pg_catalog."default",
