@@ -6,6 +6,7 @@ import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.cors import CORSMiddleware
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import core
@@ -40,6 +41,13 @@ FMT = Optional[Literal['html', 'json']]
 
 # build the base app
 app = FastAPI(lifespan=lifespan)
+
+# add cors
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*']
+)
 
 # add the templates
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -212,4 +220,6 @@ app.include_router(editing_tools.edit_router, prefix='/utils')
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run('server:app', host="0.0.0.0", port=8000, reload=True)
+    import os
+    root_path = os.environ.get('UVICORN_ROOT_PATH', '/')
+    uvicorn.run('server:app', host="0.0.0.0", port=8000, reload=True, proxy_headers=True, root_path=root_path)
