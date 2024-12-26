@@ -17,4 +17,4 @@ RUN pip install --upgrade pip && \
 
 WORKDIR /app
 
-CMD ["python", "metacatalog_api/default_server.py"]
+CMD ["python", "metacatalog_api/default_server.py", "--reload=True"]

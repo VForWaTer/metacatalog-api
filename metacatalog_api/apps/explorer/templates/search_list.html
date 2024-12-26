@@ -1,7 +1,7 @@
 <div id="action-area" class="mt-1 w-full content-center">
     <form 
         class="w-fit mx-auto"
-        hx-get="/entries.html" 
+        hx-get="{{ path }}entries.html"
         hx-trigger="submit, input from:#search delay:800ms"
         hx-target="#main-content" 
         hx-swap="innerHTML"

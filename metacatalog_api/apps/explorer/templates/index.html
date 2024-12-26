@@ -13,7 +13,6 @@
 </head>
 <body class="h-full">
     <div class="min-h-full">
-        
         <!-- Navigation -->
         <nav class="bg-gray-800">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -21,12 +20,12 @@
                     <div class="flex items-center">
 
                         <div class="flex-shrink-0 items-center justify-center">
-                            <a href="/" class="text-gray-100 hover:text-white font-semibold text-lg">Metacatalog API</a>
+                            <a href="{{ path }}" class="text-gray-100 hover:text-white font-semibold text-lg">Metacatalog API</a>
                         </div>
 
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-4">
-                                <a class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer" hx-get="/entries.html" hx-target="#main-content" hx-swap="innerHTML">Metadata List</a>
+                                <a class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer" hx-get="{{ path }}entries.html" hx-target="#main-content" hx-swap="innerHTML">Metadata List</a>
                             </div>
                         </div>
                     </div>
@@ -35,12 +34,12 @@
         </nav>
 
         <main>
-            <div id="map-content" class="mx-auto" hx-trigger="load" hx-get="/locations.html" hx-swap="innerHTML">
+            <div id="map-content" class="mx-auto" hx-trigger="load" hx-get="{{ path }}locations.html" hx-swap="innerHTML">
             </div>
             <div id="action-area" class="mt-1 w-full content-center">
                 <form 
                     class="w-fit mx-auto"
-                    hx-get="/entries.html" 
+                    hx-get="{{ path }}entries.html" 
                     hx-trigger="submit, input from:#search delay:800ms"
                     hx-target="#main-content" 
                     hx-swap="innerHTML"

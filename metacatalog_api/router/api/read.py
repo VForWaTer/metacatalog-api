@@ -7,7 +7,7 @@ read_router = APIRouter()
 
 
 @read_router.get('/entries')
-@read_router.get('entries.json')
+@read_router.get('/entries.json')
 def get_entries(offset: int = 0, limit: int = 100, search: str = None, full_text: bool = True, title: str = None, description: str = None, variable: str = None):
 
     # sanitize the search

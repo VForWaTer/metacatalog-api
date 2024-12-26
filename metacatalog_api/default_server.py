@@ -1,7 +1,7 @@
 from fastapi import Request
 from starlette.middleware.cors import CORSMiddleware
 
-from metacatalog_api.server import app, Server
+from metacatalog_api.server import app, server
 
 # these imports load the functionality needed for this metacatalog server
 from metacatalog_api.apps.explorer.read import templates
@@ -27,7 +27,7 @@ def index(request: Request):
     This example app includes the explorer read and create routes
     which are powered by the api route
     """
-    return templates.TemplateResponse(request=request, name="index.html", context={})
+    return templates.TemplateResponse(request=request, name="index.html", context={"path": server.uri_prefix})
 
 
 # add all api routes - currently this is only splitted into read and create
@@ -35,11 +35,10 @@ app.include_router(api_read_router)
 app.include_router(api_create_router)
 
 # add the default explorer application (the HTML)
-app.include_router(explorer_router)
-app.include_router(explorer_create)
+app.include_router(explorer_router, prefix=f"/{server.app_name}")
+app.include_router(explorer_create, prefix=f"/{server.app_name}")
 
 
 if __name__ == '__main__':
-    # initialize the Uvicorn Server - this needs to reference the module (file) and app
-    server = Server(asgi_app='default_server:app')
-    server.cli_cmd()
+    # run the server
+    server.cli_cmd('default_server:app')

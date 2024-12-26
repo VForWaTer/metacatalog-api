@@ -6,11 +6,11 @@
                     <div class="ml-10 flex items-baseline space-x-4">
                         <a 
                             class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer bg-white" 
-                            hx-get="/entries.html" hx-target="#main-content" hx-swap="innerHTML" hx-include="#search"
+                            hx-get="{{ path }}entries.html" hx-target="#main-content" hx-swap="innerHTML" hx-include="#search"
                         >back to metadata List</a>
                         <a
                             class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer bg-white"
-                            href="/entries/{{ entry.id }}.xml" target="_blank"
+                            href="{{ path }}entries/{{ entry.id }}.xml" target="_blank"
                         >XML</a>
                     </div>
                 </div>

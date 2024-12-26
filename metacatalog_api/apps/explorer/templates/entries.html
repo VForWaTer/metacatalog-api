@@ -1,3 +1,7 @@
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+{% if not embedded %}
+<div id="main-content">
+{% endif %}
 <ul role="list" class=""divide-y divide-gray-100">
     {% for entry in entries %}
         <li class="flex justify-between gap-x-6 py-5">
@@ -21,7 +25,7 @@
                 <button 
                     type="button" 
                     class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100"
-                    hx-get="/entries/{{ entry.id }}.html?embedded=true"
+                    hx-get="{{ path }}entries/{{ entry.id }}.html?embedded=true"
                     hx-target="#main-content"
                     hx-swap="innerHTML"
                 >
@@ -31,9 +35,11 @@
         </li>
     {% endfor %}
 </ul>
+{% if not embedded %}
+</div>
+{% endif %}
 
 <!-- Put this into the index as we have it -->
-{% set embedded = request.query_params.get('embedded') == 'true' %}
 {% if not embedded %}
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
     <script src="https://unpkg.com/htmx.org@2.0.2"></script>

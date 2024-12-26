@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 import logging
 
 from fastapi import FastAPI
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import uvicorn
 
@@ -39,17 +38,36 @@ class Server(BaseSettings):
         cli_parse_args=True, 
         cli_prog_names="metacatalog-server"
     )
-    asgi_app: str = Field(..., exclude=True, env=None)
     host: str = "0.0.0.0"
     port: int = 8000
-    root_path: str = "/"
+    root_path: str = ""
     reload: bool = False
+    app_name: str = "explorer"
 
-    def cli_cmd(self):
+    @property
+    def uri_prefix(self):
+        if self.root_path.startswith('/'):
+            path = self.root_path
+        else:
+            path = f"/{self.root_path}"
+        
+        if self.app_name.startswith('/'):
+            path += self.app_name.strip('/')
+        else:
+            path += self.app_name
+        
+        if not path.endswith('/'):
+            return f"{path}/"
+        else:
+            return path
+
+    def cli_cmd(self, asgi_app: str):
         """Start the uvicorn server"""
-        uvicorn.run(self.asgi_app, host=self.host, port=self.port, root_path=self.root_path, reload=self.reload)
+        uvicorn.run(asgi_app, host=self.host, port=self.port, root_path=self.root_path, reload=self.reload)
 
-
+# create the server object
+server = Server()
+logger.info(server.uri_prefix, server.root_path, server.app_name)
 
 if __name__ == "__main__":
     print("The main server is not meant to be run directly. Check default_server.py for a sample application")
