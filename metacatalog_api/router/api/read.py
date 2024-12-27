@@ -33,9 +33,8 @@ def get_entry(id: int):
     entries = core.entries(ids=id)
     
     if len(entries) == 0:
-        return HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     return entries[0]
-
 
 @read_router.get('/licenses')
 @read_router.get('/licenses.json')
