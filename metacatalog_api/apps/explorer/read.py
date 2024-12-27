@@ -102,7 +102,7 @@ def get_variables_page(request: Request, offset: int = None, limit: int = None):
     try:
         variables = core.variables(only_available=False, offset=offset, limit=limit)
     except Exception as e:
-        return HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
     
     return templates.TemplateResponse(
         request=request, 
