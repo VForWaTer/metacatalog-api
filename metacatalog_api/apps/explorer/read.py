@@ -80,7 +80,7 @@ def get_authors_page(request: Request, entry_id: int | None = None, author_id: i
     try:
         authors = core.authors(id=author_id, entry_id=entry_id, search=search, exclude_ids=exclude_ids, offset=offset, limit=limit)
     except Exception as e:
-        return HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
     # check if an author_id is given
     if author_id is not None:
