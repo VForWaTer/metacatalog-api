@@ -54,7 +54,7 @@ def get_entry_radar_xml(id: int, request: Request):
     entries = core.entries(ids=id)
     
     if len(entries) == 0:
-        return HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     
     return templates.TemplateResponse(request=request, name="entry.radar.xml", context={"entry": entries[0], "path": server.uri_prefix}, media_type='application/xml')
 
