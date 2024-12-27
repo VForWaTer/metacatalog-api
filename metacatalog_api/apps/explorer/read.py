@@ -65,7 +65,7 @@ def get_licenses_page(request: Request,  license_id: int | None = None):
     try:
         licenses = core.licenses(id=license_id)
     except Exception as e:
-         return HTTPException(status_code=404, detail=str(e))
+         raise HTTPException(status_code=404, detail=str(e))
 
     # check the number if a id was given
     if license_id is not None:
