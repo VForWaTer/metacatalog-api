@@ -41,7 +41,7 @@ def get_entry_page(id: int, request: Request):
     entries = core.entries(ids=id)
     
     if len(entries) == 0:
-        return HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     
     # check if we should return html
     return templates.TemplateResponse(request=request, name="entry.html", context={"entry": entries[0], "path": server.uri_prefix})
