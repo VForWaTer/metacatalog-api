@@ -50,16 +50,15 @@ def get_licenses(license_id: int | None = None):
 
 @read_router.get('/authors')
 @read_router.get('/authors.json')
-@read_router.get('/etnries/{entry_id}/authors')
+@read_router.get('/entries/{entry_id}/authors')
 @read_router.get('/entries/{entry_id}/authors.json')
 def get_authors(entry_id: int | None = None, author_id: int | None = None, search: str = None, exclude_ids: list[int] = None, target: str = None, offset: int = None, limit: int = None):
     try:
         authors = core.authors(id=author_id, entry_id=entry_id, search=search, exclude_ids=exclude_ids, offset=offset, limit=limit)
     except Exception as e:
-        return HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
     return authors
-
 @read_router.get('/authors/{author_id}')
 @read_router.get('/authors/{author_id}.json')
 def get_author(author_id: int):
