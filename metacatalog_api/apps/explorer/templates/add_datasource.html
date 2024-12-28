@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
 
-    <script src="/js/metacatalog.js"></script>
+    <script src="{{ path }}js/metacatalog.js"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -19,7 +19,7 @@
 {% endif %}
 
 {% if not embedded %}
- <form hx-post="/datasources" hx-swap="afterbegin" >
+ <form hx-post="{{ path }}datasources" hx-swap="afterbegin" >
 {% endif %}
 
 <div x-data="{open: false}">
@@ -72,7 +72,7 @@
                         <div x-show="spatialActive" x-collapse x-cloak>
                             <div class="flex flex-col mt-6">
                                 <div id="mapcontainer" class="w-full h-96 border border-gray-300 rounded-md">
-                                    <div hx-get="/utils/leaflet_draw.html?embedded=true&view-inputs&geom=extent" hx-trigger="load" hx-swap="outerHTML"></div>
+                                    <div hx-get="{{ path }}utils/leaflet_draw.html?embedded=true&view-inputs&geom=extent" hx-trigger="load" hx-swap="outerHTML"></div>
                                 </div>
                                 <div class="flex items-center space-x-12">
                                     <label for="spatial_scale_resolution" class="text-sm font-medium text-gray-700">Resolution (m)</label>

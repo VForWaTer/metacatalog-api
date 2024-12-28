@@ -23,12 +23,12 @@
 
             <h3 class="text-lg font-semibold text-gray-800">Variable</h3>
             <div class="flex flex-col space-y-2">
-                <div hx-get="/variables.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="{{ path }}variables.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
 
             <h3 class="text-lg font-semibold text-gray-800">Authors</h3>
             <div class="flex flex-col space-y-2">
-                <div hx-get="/authors.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="{{ path }}authors.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
         </div>
     </div>
@@ -43,7 +43,7 @@
         <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
             <div class="flex flex-col space-y-2">
                 <div class="w-full h-96 border border-gray-300 rounded-md">
-                    <div hx-get="/utils/leaflet_draw.html?embedded=true&view-inputs" hx-trigger="load" hx-swap="outerHTML"></div>
+                    <div hx-get="{{ path }}utils/leaflet_draw.html?embedded=true&view-inputs" hx-trigger="load" hx-swap="outerHTML"></div>
                 </div>
             </div>
         </div>
@@ -60,7 +60,7 @@
         <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
 
             <div class="flex flex-col space-y-2">
-                <div hx-get="/licenses.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="{{ path }}licenses.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
 
         </div>
@@ -75,12 +75,12 @@
         </div>
         <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
             <div class="flex flex-col space-y-2">
-                <div hx-get="/details/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="{{ path }}details/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
         </div>
     </div>
 
-    <div hx-get="/datasources/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+    <div hx-get="{{ path }}datasources/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
 
     <!-- Add the submit button here -->
     <div class="my-4">
@@ -149,7 +149,7 @@
 
 {% set embedded = request.query_params.get('embedded') == 'true' %}
 {% if not embedded %}
-    <script src="/static/metacatalog.js"></script>
+    <script src="{{ path }}static/metacatalog.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
     <script src="https://unpkg.com/htmx.org@2.0.2"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>

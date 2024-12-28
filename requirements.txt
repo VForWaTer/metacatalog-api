@@ -4,6 +4,7 @@ Jinja2
 python-dotenv
 uvicorn
 pydantic-geojson
+pydantic-settings
 python-multipart
 dateparser
 sqlmodel
