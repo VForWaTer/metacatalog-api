@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import uvicorn
 
 from metacatalog_api import core
+from metacatalog_api import __version__
+from metacatalog_api.db import DB_VERSION
 
 
 logger = logging.getLogger('uvicorn.error')
@@ -32,6 +34,15 @@ async def lifespan(app: FastAPI):
 # build the base app
 app = FastAPI(lifespan=lifespan)
 
+@app.get('/version')
+def get_version(request: Request):
+    return {
+        "metacatalog_api": __version__,
+        "db_version": DB_VERSION,
+        "hostname": request.url.hostname,
+        "port": request.url.port,
+        "root_path": request.url.path
+    }
 
 class Server(BaseSettings):
     model_config = SettingsConfigDict(
@@ -50,6 +61,9 @@ class Server(BaseSettings):
             path = self.root_path
         else:
             path = f"/{self.root_path}"
+        
+        if not path.endswith('/'):
+            path += '/'
         
         if self.app_name.startswith('/'):
             path += self.app_name.strip('/')
