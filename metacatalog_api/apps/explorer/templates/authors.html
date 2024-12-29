@@ -82,7 +82,7 @@ function authorTable() {
 
         async fetchExistingAuthors() {
             try {
-                const response = await fetch('/authors.json');
+                const response = await fetch('{{ path }}authors.json');
                 const data = await response.json();
                 this.existingAuthors = data;
             } catch (err) {

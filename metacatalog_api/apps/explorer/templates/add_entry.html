@@ -75,12 +75,12 @@
         </div>
         <div class="flex flex-col space-y-4 p-4" x-show="open" x-collapse>
             <div class="flex flex-col space-y-2">
-                <div hx-get="{{ path }}details/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+                <div hx-get="{{ path }}create/details.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
             </div>
         </div>
     </div>
 
-    <div hx-get="{{ path }}datasources/new.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
+    <div hx-get="{{ path }}create/datasources.html?embedded=true" hx-swap="outerHTML" hx-trigger="load"></div>
 
     <!-- Add the submit button here -->
     <div class="my-4">
