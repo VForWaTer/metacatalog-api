@@ -219,7 +219,54 @@ def get_authors(session: Session, search: str = None, exclude_ids: list[int] = N
     authors = session.exec(query).all()
 
     return [models.Author.model_validate(author) for author in authors]
+ 
+def get_authors_by_name(session: Session, name: str, limit: int = None, offset: int = None) -> list[models.Author]:
+    if '*' in name:
+        name = name.replace('*', '%')
+    if '%' not in name:
+        name = f'%{name}%'
+    
+    # limit and offset
+    lim = f" LIMIT {limit} " if limit is not None else ""
+    off = f" OFFSET {offset} " if offset is not None else ""
 
+    sql = load_sql("authors_by_name.sql").format(limit=lim, offset=off)
+    authors = session.exec(text(sql), params={"prompt": name}).all()
+
+    return [models.Author.model_validate(author) for author in authors]
+
+def get_author_by_name(session: Session, name: str, strict: bool = False) -> models.Author:
+    authors = get_authors_by_name(session, name)
+    if len(authors) == 0:
+        return None
+    if strict and len(authors) > 1:
+        raise RuntimeError(f"More than one author found for name {name}")
+    else:
+        return authors[0]
+
+def create_or_get_author(session: Session, author: models.AuthorCreate) -> models.Author:
+    sql = select(models.PersonTable).where(
+        models.PersonTable.first_name == author.first_name &
+        models.PersonTable.last_name == author.last_name &
+        models.PersonTable.organisation_name == author.organisation_name &
+        models.PersonTable.organisation_abbrev == author.organisation_abbrev
+    )
+
+    author = session.exec(sql).first()
+    if author is None:
+        session.add(models.PersonTable.model_validate(author))
+        session.commit()
+        session.refresh(author)
+    return models.Author.model_validate(author)
+
+def add_author(session: Session, author: models.AuthorCreate) -> models.Author:
+    author = models.PersonTable.model_validate(author)
+    
+    session.add(author)
+    session.commit()
+    session.refresh(author)
+
+    return models.Author.model_validate(author) 
 
 def get_authors_by_entry(session: Session, entry_id: int) -> list[models.Author]:
     query = (
@@ -315,7 +362,7 @@ def get_datatypes(session: Session, id: int = None) -> list[models.DatasourceTyp
 #     raise NotImplementedError
 
 
-def add_entry(session: Session, payload: models.EntryCreate) -> models.Metadata:
+def add_entry(session: Session, payload: models.EntryCreate, author_duplicates: bool = False) -> models.Metadata:
     # grab the keywords
     if payload.keywords is not None and len(payload.keywords) > 0:
         sql = select(models.KeywordTable).where(col(models.KeywordTable.id).in_(payload.keywords))
@@ -326,6 +373,8 @@ def add_entry(session: Session, payload: models.EntryCreate) -> models.Metadata:
     # add or set the author
     if isinstance(payload.author, int):
         author = session.get(models.PersonTable, payload.author)
+    elif not author_duplicates:
+        author = create_or_get_author(session, payload.author)
     else:
         author = models.PersonTable.model_validate(payload.author)
     
@@ -337,7 +386,8 @@ def add_entry(session: Session, payload: models.EntryCreate) -> models.Metadata:
         for coAuthor in payload.coAuthors:
             if isinstance(coAuthor, int):
                 coAuthors.append(session.get(models.PersonTable, coAuthor))
-
+            elif not author_duplicates:
+                coAuthors.append(create_or_get_author(session, coAuthor))
             else:
                 coAuthors.append(models.PersonTable.model_validate(coAuthor))
     
