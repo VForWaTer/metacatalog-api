@@ -113,7 +113,7 @@ def licenses(id: int = None, offset: int = None, limit: int = None) -> models.Li
     return result
 
 
-def authors(id: int = None, entry_id: int = None, search: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[models.Author]:
+def authors(id: int = None, entry_id: int = None, search: str = None, name: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[models.Author]:
     with connect() as session:
         # if an author_id is given, we return only the author of that id
         if id is not None:
@@ -121,10 +121,26 @@ def authors(id: int = None, entry_id: int = None, search: str = None, exclude_id
         # if an entry_id is given, we return only the authors of that entry
         elif entry_id is not None:
             authors = db.get_authors_by_entry(session, entry_id=entry_id)
+        elif name is not None:
+            authors = db.get_authors_by_name(session, name=name, limit=limit, offset=offset)
         else:
             authors = db.get_authors(session, search=search, exclude_ids=exclude_ids, limit=limit, offset=offset)
     
     return authors
+
+def author(id: int = None, name: str = None, search: str = None) -> models.Author | None:
+    with connect() as session:
+        if id is not None:
+            author = db.get_author_by_id(session, id=id)
+        elif name is not None:
+            author = db.get_author_by_name(session, name=name)
+        else:
+            authors = db.get_authors(session, search=search, limit=1) 
+            if len(authors) == 0:
+                author = None
+            else:
+                author = authors[0]
+    return author
 
 
 def variables(id: int = None, only_available: bool = False, offset: int = None, limit: int = None) -> List[models.Variable]:
@@ -145,10 +161,19 @@ def datatypes(id: int = None) -> List[models.DatasourceTypeBase]:
         return db.get_datatypes(session, id=id)
 
 
-def add_entry(payload: models.EntryCreate) -> models.Metadata:
+def add_author(payload: models.AuthorCreate, no_duplicates: bool = True) -> models.Author:
+    with connect() as session:
+        if no_duplicates:
+            author = db.create_or_get_author(session, payload)
+        else:
+            author = db.add_author(session, payload)
+    
+    return author
+
+def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> models.Metadata:
     # add the entry
     with connect() as session:
-        entry = db.add_entry(session, payload=payload)
+        entry = db.add_entry(session, payload=payload, author_duplicates=author_duplicates)
     
         # check if there was a datasource
         if payload.datasource is not None:

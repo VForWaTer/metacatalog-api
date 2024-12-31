@@ -6,8 +6,8 @@ from metacatalog_api import models
 create_router = APIRouter()
 
 @create_router.post('/entries')
-def add_entry(payload: models.EntryCreate) -> models.Metadata:
-    metadata = core.add_entry(payload)
+def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> models.Metadata:
+    metadata = core.add_entry(payload, author_duplicates=author_duplicates)
     return metadata
 
 
@@ -15,3 +15,12 @@ def add_entry(payload: models.EntryCreate) -> models.Metadata:
 def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Metadata:
     metadata = core.add_datasource(entry_id=entry_id, payload=payload)
     return metadata
+
+@create_router.post('/author')
+def add_author(payload: models.AuthorCreate, no_duplicates: bool = True) -> models.Author:
+    """
+    Create a new Author. If the author already exists, the existing author is returned.
+    If no_duplicates is set to False, the author will be dupliacted with different UUID.
+    """
+    author = core.add_author(payload, no_duplicates=no_duplicates)
+    return author
