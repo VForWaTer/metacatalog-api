@@ -59,6 +59,8 @@ def get_authors(entry_id: int | None = None, author_id: int | None = None, searc
         raise HTTPException(status_code=404, detail=str(e))
 
     return authors
+
+
 @read_router.get('/authors/{author_id}')
 @read_router.get('/authors/{author_id}.json')
 def get_author(author_id: int):
@@ -67,6 +69,16 @@ def get_author(author_id: int):
         return author
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@read_router.get('/author')
+@read_router.get('/author.json')
+def get_author_by_name(id: int = None, name: str = None, search: str = None):
+    if id is None and name is None and search is None:
+        raise HTTPException(status_code=400, detail="Either id, name or search must be provided")
+    author = core.author(id=id, name=name, search=search)
+
+    return author
 
 
 @read_router.get('/variables')
