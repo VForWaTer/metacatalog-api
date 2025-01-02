@@ -36,6 +36,7 @@ def get_entry(id: int):
         raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     return entries[0]
 
+
 @read_router.get('/licenses')
 @read_router.get('/licenses.json')
 def get_licenses(license_id: int | None = None):
@@ -83,10 +84,19 @@ def get_author_by_name(id: int = None, name: str = None, search: str = None):
 
 @read_router.get('/variables')
 @read_router.get('/variables.json')
-def get_variables(offset: int = None, limit: int = None):
+def get_variables(only_available: bool = False, offset: int = None, limit: int = None):
     try:
-        variables = core.variables(only_available=False, offset=offset, limit=limit)
+        variables = core.variables(only_available=only_available, offset=offset, limit=limit)
     except Exception as e:
         return HTTPException(status_code=404, detail=str(e))
 
     return variables
+
+@read_router.get('/variable/{id}')
+@read_router.get('/variable/{id}.json')
+def get_variable(id: int):
+    try:
+        variable = core.variables(id=id)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return variable

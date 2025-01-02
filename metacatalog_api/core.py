@@ -128,6 +128,7 @@ def authors(id: int = None, entry_id: int = None, search: str = None, name: str 
     
     return authors
 
+
 def author(id: int = None, name: str = None, search: str = None) -> models.Author | None:
     with connect() as session:
         if id is not None:
@@ -148,7 +149,7 @@ def variables(id: int = None, only_available: bool = False, offset: int = None, 
         if only_available:
             variables = db.get_available_variables(session, limit=limit, offset=offset)
         elif id is not None:
-            variables = [db.get_variable_by_id(session, id=id)]
+            variables = db.get_variable_by_id(session, id=id)
         else:
             variables = db.get_variables(session, limit=limit, offset=offset)
     
@@ -170,6 +171,7 @@ def add_author(payload: models.AuthorCreate, no_duplicates: bool = True) -> mode
     
     return author
 
+
 def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> models.Metadata:
     # add the entry
     with connect() as session:
@@ -180,6 +182,7 @@ def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> m
             entry = db.add_datasource(session, entry_id=entry.id, datasource=payload.datasource)
         session.commit()
     return entry
+
 
 def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Metadata:
     with connect() as session:

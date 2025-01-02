@@ -219,7 +219,8 @@ def get_authors(session: Session, search: str = None, exclude_ids: list[int] = N
     authors = session.exec(query).all()
 
     return [models.Author.model_validate(author) for author in authors]
- 
+
+
 def get_authors_by_name(session: Session, name: str, limit: int = None, offset: int = None) -> list[models.Author]:
     if '*' in name:
         name = name.replace('*', '%')
@@ -235,6 +236,7 @@ def get_authors_by_name(session: Session, name: str, limit: int = None, offset: 
 
     return [models.Author.model_validate(author) for author in authors]
 
+
 def get_author_by_name(session: Session, name: str, strict: bool = False) -> models.Author:
     authors = get_authors_by_name(session, name)
     if len(authors) == 0:
@@ -243,6 +245,7 @@ def get_author_by_name(session: Session, name: str, strict: bool = False) -> mod
         raise RuntimeError(f"More than one author found for name {name}")
     else:
         return authors[0]
+
 
 def create_or_get_author(session: Session, author: models.AuthorCreate) -> models.Author:
     sql = select(models.PersonTable).where(
@@ -259,6 +262,7 @@ def create_or_get_author(session: Session, author: models.AuthorCreate) -> model
         session.refresh(author)
     return models.Author.model_validate(author)
 
+
 def add_author(session: Session, author: models.AuthorCreate) -> models.Author:
     author = models.PersonTable.model_validate(author)
     
@@ -267,6 +271,7 @@ def add_author(session: Session, author: models.AuthorCreate) -> models.Author:
     session.refresh(author)
 
     return models.Author.model_validate(author) 
+
 
 def get_authors_by_entry(session: Session, entry_id: int) -> list[models.Author]:
     query = (
@@ -355,11 +360,6 @@ def get_datatypes(session: Session, id: int = None) -> list[models.DatasourceTyp
         types = session.exec(select(models.DatasourceTypeTable)).all()
 
         return [models.DatasourceTypeBase.model_validate(type_) for type_ in types]
-
-
-# def get_datasource_by_id(session: Cursor, id: int) -> models.Datasource:
-#     # handle the filter
-#     raise NotImplementedError
 
 
 def add_entry(session: Session, payload: models.EntryCreate, author_duplicates: bool = False) -> models.Metadata:
