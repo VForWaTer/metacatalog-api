@@ -3,6 +3,7 @@ from fastapi.exceptions import HTTPException
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import core
+from metacatalog_api import models
 read_router = APIRouter()
 
 
@@ -100,3 +101,37 @@ def get_variable(id: int):
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
     return variable
+
+@read_router.get('/group-types')
+@read_router.get('/group-types.json')
+def get_group_types():
+    try:
+        group_types = core.group_types()
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return group_types
+
+
+@read_router.get('/groups')
+@read_router.get('/groups.json')
+def get_groups(title: str = None, description: str = None, type: str = None, limit: int = None, offset: int = None) -> list[models.EntryGroup]:
+    try:
+        groups = core.groups(title=title, description=description, type=type, with_metadata=False, limit=limit, offset=offset)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    return groups
+
+
+@read_router.get('/groups/{group_id}')
+@read_router.get('/groups/{group_id}.json')
+def get_group(group_id) -> models.EntryGroupWithMetadata:
+    try:
+        group = core.groups(id=group_id, with_metadata=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if group is None:
+        raise HTTPException(status_code=404, detail=f"Group of id {group_id} was not found.")
+
+    return group

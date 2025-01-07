@@ -24,3 +24,8 @@ def add_author(payload: models.AuthorCreate, no_duplicates: bool = True) -> mode
     """
     author = core.add_author(payload, no_duplicates=no_duplicates)
     return author
+
+@create_router.post('/group')
+def add_group(payload: models.EntryGroupCreate) -> models.EntryGroup:
+    group = core.add_group(payload=payload)
+    return group
