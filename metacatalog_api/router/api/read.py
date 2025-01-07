@@ -89,7 +89,7 @@ def get_variables(only_available: bool = False, offset: int = None, limit: int =
     try:
         variables = core.variables(only_available=only_available, offset=offset, limit=limit)
     except Exception as e:
-        return HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
     return variables
 
@@ -108,7 +108,7 @@ def get_group_types():
     try:
         group_types = core.group_types()
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e)) from e
     return group_types
 
 
@@ -118,7 +118,7 @@ def get_groups(title: str = None, description: str = None, type: str = None, lim
     try:
         groups = core.groups(title=title, description=description, type=type, with_metadata=False, limit=limit, offset=offset)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     
     return groups
 
@@ -129,7 +129,7 @@ def get_group(group_id) -> models.EntryGroupWithMetadata:
     try:
         group = core.groups(id=group_id, with_metadata=True)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     if group is None:
         raise HTTPException(status_code=404, detail=f"Group of id {group_id} was not found.")
