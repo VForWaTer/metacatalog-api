@@ -216,7 +216,6 @@ class DatasourceTypeTable(DatasourceTypeBase, table=True):
     datasources: list['DatasourceTable'] = Relationship(back_populates='type')
 
 class TemporalScaleBase(SQLModel):
-    id: int | None = None
     resolution: timedelta
     observation_start: datetime
     observation_end: datetime
@@ -235,7 +234,6 @@ class TemporalScale(TemporalScaleBase):
 
 
 class SpatialScaleBase(SQLModel):
-    id: int | None = None
     resolution: int
     extent: Optional[Annotated[PolygonModel, Field(sa_column=Column(Geometry(geometry_type='POLYGON', srid=4326), nullable=True))]] = None
     support: float
@@ -310,14 +308,59 @@ class DatasourceTable(DatasourceBase, table=True):
 
 class DatasourceCreate(DatasourceBase):
     type: int | str
-    temporal_scale: TemporalScale | None = None
-    spatial_scale: SpatialScale | None = None
+    temporal_scale: TemporalScaleBase | None = None
+    spatial_scale: SpatialScaleBase | None = None
 
 class Datasource(DatasourceBase):
     id: int
     type: DatasourceTypeBase
     temporal_scale: TemporalScale | None = None
     spatial_scale: SpatialScale | None = None
+
+class NMGroupsEntries(SQLModel, table=True):
+    __tablename__ = "nm_entrygroups"
+    entry_id: int = Field(primary_key=True, foreign_key='entries.id')
+    group_id: int = Field(primary_key=True, foreign_key='entrygroups.id')
+
+class EntryGroupTypeBase(SQLModel):
+    name: str
+    description: str
+
+class EntryGroupTypeTable(EntryGroupTypeBase, table=True):
+        __tablename__ = "entrygroup_types"
+        id: int | None = Field(default=None, primary_key=True)
+        groups: list['EntryGroupTable'] = Relationship(back_populates="type")
+
+class EntryGroupType(EntryGroupTypeBase):
+    id: int | None = None
+    uuid: UUID4 | None = None
+
+class EntryGroupBase(SQLModel):
+    title: str
+    description: str | None = None
+    publication: datetime | None = Field(default_factory=datetime.now)
+    lastUpdate: datetime | None = Field(default_factory=datetime.now)
+
+class EntryGroupTable(EntryGroupBase, table=True):
+    __tablename__ = "entrygroups"
+    id: int | None = Field(default=None, primary_key=True)
+    uuid: UUID4 | None = Field(default_factory=uuid4)
+    type_id: int = Field(foreign_key='entrygroup_types.id')
+
+    type: EntryGroupTypeTable = Relationship(back_populates="groups")
+    entries: list['EntryTable'] = Relationship(link_model=NMGroupsEntries)
+
+class EntryGroup(EntryGroupBase):
+    id: int
+    uuid: UUID4
+    type: EntryGroupType
+
+class EntryGroupWithMetadata(EntryGroup):
+    entries: list['Metadata']
+
+class EntryGroupCreate(EntryGroupBase):
+    type: str
+    entry_ids: list[int] = []
 
 class EntryBase(SQLModel):
     title: str = Field(nullable=False, unique=True)
@@ -383,6 +426,7 @@ class EntryTable(EntryBase, table=True):
     keywords: list[KeywordTable] = Relationship(back_populates='entries', link_model=NMKeywordsEntries)
     details: list[DetailTable] = Relationship(back_populates='entry')
     datasource: DatasourceTable = Relationship(back_populates='entry')
+    groups: list[EntryGroupTable] = Relationship(back_populates='entries', link_model=NMGroupsEntries)
 
     @field_validator('location', mode='before')
     def validate_location(cls, v, info):
@@ -408,7 +452,8 @@ class EntryCreate(EntryBase):
     coAuthors: list[AuthorCreate | int] | None = None
     keywords: list[int] | None = None
     details: list[DetailCreate] | None = None
-    datasource: Datasource | None = None
+    datasource: DatasourceCreate | None = None
+    groups: list[int | EntryGroupCreate] | None = None
 
 
 class Metadata(EntryBase):
@@ -421,5 +466,4 @@ class Metadata(EntryBase):
     keywords: list[Keyword] = []
     details: list[Detail] = []
     datasource: Datasource | None = None
-    # associated_groups: List['EntryGroup'] = relationship("EntryGroup", secondary="nm_entrygroups", back_populates='entries')
 
