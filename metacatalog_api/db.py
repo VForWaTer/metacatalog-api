@@ -489,3 +489,96 @@ def add_datasource(session: Session, entry_id: int, datasource: models.Datasourc
 
     session.refresh(entry)
     return models.Metadata.model_validate(entry)
+
+
+def get_grouptypes(session: Session) -> list[models.EntryGroupType]:
+    types = session.exec(select(models.EntryGroupTypeTable)).all()
+    return [models.EntryGroupType.model_validate(t) for t in types]
+
+
+def get_groups(session: Session, title: str = None, description: str = None, type: str = None, limit: int = None, offset: int = None, with_metadata: bool = False) -> list[models.EntryGroup] | list[models.EntryGroupWithMetadata]:
+    sql = select(models.EntryGroupTable)
+
+    if title is not None:
+        sql = sql.where(models.EntryGroupTable.title == title)
+    if description is not None:
+        sql = sql.where(col(models.EntryGroupTable.description).ilike(description))
+    if type is not None:
+        sql = sql.join(models.EntryGroupTypeTable).where(models.EntryGroupTypeTable.name == type)
+    
+    if limit is not None:
+        sql = sql.limit(limit)
+    if offset is not None:
+        sql = sql.offset(offset)
+    
+    groups = session.exec(sql).all()
+    if with_metadata:
+        return [models.EntryGroupWithMetadata.model_validate(g) for g in groups]
+    else:
+        return [models.EntryGroup.model_validate(g) for g in groups]
+
+
+def get_group(session: Session, id: int = None, title: str = None, with_metadata: bool = False) -> models.EntryGroupWithMetadata | models.EntryGroup | None:
+    if id is None and title is None:
+        raise ValueError('Either id or title has to be given')
+    
+    sql = select(models.EntryGroupTable)
+    if id is not None:
+        sql = sql.where(models.EntryGroupTable.id == id)
+    else:
+        sql = sql.where(models.EntryGroupTable.title == title)
+    
+    group = session.exec(sql).first()
+    if group is None:
+        return None
+    if with_metadata:
+        return models.EntryGroupWithMetadata.model_validate(group)
+    else:
+        return models.EntryGroup.model_validate(group)
+
+
+def add_group(session: Session, title: str, description: str, type: str, entry_ids: list[int] = []) -> models.EntryGroup:
+    types = get_grouptypes(session=session)
+    grouptype = next(filter(lambda t: t.name.lower() == type.lower(), types), None)
+    if grouptype is None:
+        raise ValueError(f"The type {type} is not valid. Maybe you misspelled? Supported types: [{','.join([t.title for t in types])}]")
+    
+    group = models.EntryGroupTable(
+        title=title,
+        description=description,
+        type_id=grouptype.id
+    )
+
+    session.add(group)
+    session.commit()
+    session.refresh(group)
+
+    if len(entry_ids) > 0:
+        for entry_id in entry_ids:
+            session.add(models.NMGroupsEntries(entry_id=entry_id, group_id=group.id))
+        session.commit()
+
+    return models.EntryGroup.model_validate(group)
+
+def group_entries(session: Session, group: models.EntryGroupBase | int, entry_ids: list[int | models.EntryBase]) -> models.EntryGroup:
+    # get the group
+    if isinstance(group, int):
+        group_id = group
+    elif hasattr(group, 'id') and group.id is not None:
+        group_id = group.id
+    else:
+        new_group = get_group(session=session, title=group.title)
+        if new_group is None:
+            group = add_group(session=session, title=group.title, description=group.description, type=group.type)
+        else:
+            group = new_group
+        group_id = group.id
+    
+    for entry_id in entry_ids:
+        if not isinstance(entry_id, int):
+            entry_id = entry_id.id 
+        session.add(models.NMGroupsEntries(group_id=group_id, entry_id=entry_id))
+    session.commit()
+
+    group = get_group(session=session, id=group_id)
+    return models.EntryGroup.model_validate(group)

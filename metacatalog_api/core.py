@@ -103,6 +103,21 @@ def entries_locations(ids: int | List[int] = None, limit: int = None, offset: in
     return result
 
 
+def groups(id: int = None, title: str = None, description: str = None, type: str = None, with_metadata: bool = False, limit: int = None, offset: int = None):
+    with connect() as session:
+        if id is not None or (title is not None and '%' not in title):
+            group = db.get_group(session, id=id, title=title, with_metadata=with_metadata)
+            return group
+        else:
+            groups = db.get_groups(session, title=title, description=description, type=type, limit=limit, offset=offset)
+            return groups 
+
+
+def group_types():
+    with connect() as session:
+        return db.get_grouptypes(session)
+
+
 def licenses(id: int = None, offset: int = None, limit: int = None) -> models.License | list[models.License]:
     with connect() as session:
         if id is not None:
@@ -181,6 +196,11 @@ def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> m
         if payload.datasource is not None:
             entry = db.add_datasource(session, entry_id=entry.id, datasource=payload.datasource)
         session.commit()
+
+        # handle groups
+        if payload.groups is not None and len(payload.groups) > 0:
+            for group in payload.groups:
+                db.group_entries(session=session, group=group, entry_ids=[entry.id])
     return entry
 
 
@@ -189,3 +209,15 @@ def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Me
         entry = db.add_datasource(session, entry_id=entry_id, datasource=payload)
 
     return entry
+
+
+def add_group(payload: models.EntryGroupCreate) -> models.EntryGroup:
+    with connect() as session:
+        group = db.add_group(
+            session=session,
+            title=payload.title,
+            description=payload.description, 
+            type=payload.type,
+            entry_ids=payload.entry_ids
+        )
+    return group
