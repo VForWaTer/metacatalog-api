@@ -37,25 +37,11 @@ def get_db_version(session: Session, schema: str = 'public') -> dict:
     return {'db_version': v}
 
 
-def check_db_version(session: Session, schema: str = 'public') -> bool:
-    """Verify that the database version matches the expected version.
-    
-    Args:
-        session: A SQLAlchemy session object
-        
-    Raises:
-        ValueError: If database version doesn't match DB_VERSION constant
-
-    Returns:
-        bool: True if database version matches
-    """
+def has_version_mismatch(session: Session, schema: str = 'public') -> bool:
     remote_db_version = get_db_version(session, schema=schema)['db_version']
     if remote_db_version != DB_VERSION:
-        raise ValueError(
-            f"Database version mismatch. Expected {DB_VERSION}, got {remote_db_version}. "
-            "Please run database migrations to update your schema."
-        )
-    return True
+        return True
+    return False
 
 
 def install(session: Session, schema: str = 'public', populate_defaults: bool = True) -> None:

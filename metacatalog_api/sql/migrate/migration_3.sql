@@ -1,6 +1,6 @@
 -- change the entryGroup types
-ALTER TABLE {schema}.entrygroup_types ALTER COLUMN name type TEXT NOT NULL;
-ALTER TABLE {schema}.entrygroup_types ALTER COLUMN description type TEXT NOT NULL;
+ALTER TABLE {schema}.entrygroup_types ALTER COLUMN name type TEXT;
+ALTER TABLE {schema}.entrygroup_types ALTER COLUMN description type TEXT;
 
 -- add new entry-group types
 INSERT INTO {schema}.entrygroup_types VALUES (5, 'Dataset', 'A Dataset collects different self-contained entries (usually of different variables) that belong together. Other than composites, the single entries are self-contained and can be loaded individually.');
