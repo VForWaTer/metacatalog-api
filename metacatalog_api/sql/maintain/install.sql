@@ -409,8 +409,8 @@ CREATE SEQUENCE IF NOT EXISTS public.entrygroup_types_id_seq
 CREATE TABLE IF NOT EXISTS {schema}.entrygroup_types
 (
     id integer NOT NULL DEFAULT nextval('entrygroup_types_id_seq'::regclass),
-    name character varying(40) COLLATE pg_catalog."default" NOT NULL,
-    description character varying COLLATE pg_catalog."default" NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
     CONSTRAINT entrygroup_types_pkey PRIMARY KEY (id)
 );
 

@@ -3431,6 +3431,8 @@ INSERT INTO {schema}.entrygroup_types VALUES (1, 'Project', 'A Project groups da
 INSERT INTO {schema}.entrygroup_types VALUES (2, 'Composite', 'A composite dataset groups a number of datasets that are inseparable.');
 INSERT INTO {schema}.entrygroup_types VALUES (3, 'Split dataset', 'A split dataset groups a number of identical datasets that have to be split e.g. in case of different time scale resolution.');
 INSERT INTO {schema}.entrygroup_types VALUES (4, 'Label', 'A Label groups different datasets into a larger collection of datasets, that are now a composite, but i.e. collected at the same site.');
+INSERT INTO {schema}.entrygroup_types VALUES (5, 'Dataset', 'A Dataset collects different self-contained entries (usually of different variables) that belong together. Other than composites, the single entries are self-contained and can be loaded individually.');
+INSERT INTO {schema}.entrygroup_types VALUES (6, 'Site', 'A Site groups related entries, which have been collected at the same site. This can be used if the location or spatial-scale does not suffiently group the entries together.');
 
 
 --
