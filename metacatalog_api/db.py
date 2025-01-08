@@ -496,7 +496,7 @@ def get_grouptypes(session: Session) -> list[models.EntryGroupType]:
     return [models.EntryGroupType.model_validate(t) for t in types]
 
 
-def get_groups(session: Session, title: str = None, description: str = None, type: str = None, limit: int = None, offset: int = None, with_metadata: bool = False) -> list[models.EntryGroup] | list[models.EntryGroupWithMetadata]:
+def get_groups(session: Session, title: str = None, description: str = None, type: str = None, entry_id: int = None, limit: int = None, offset: int = None, with_metadata: bool = False) -> list[models.EntryGroup] | list[models.EntryGroupWithMetadata]:
     sql = select(models.EntryGroupTable)
 
     if title is not None:
@@ -505,6 +505,8 @@ def get_groups(session: Session, title: str = None, description: str = None, typ
         sql = sql.where(col(models.EntryGroupTable.description).ilike(description))
     if type is not None:
         sql = sql.join(models.EntryGroupTypeTable).where(models.EntryGroupTypeTable.name == type)
+    if entry_id is not None:
+        sql = sql.join(models.NMGroupsEntries).where(models.NMGroupsEntries.entry_id == entry_id)
     
     if limit is not None:
         sql = sql.limit(limit)

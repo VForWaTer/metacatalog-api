@@ -103,13 +103,13 @@ def entries_locations(ids: int | List[int] = None, limit: int = None, offset: in
     return result
 
 
-def groups(id: int = None, title: str = None, description: str = None, type: str = None, with_metadata: bool = False, limit: int = None, offset: int = None):
+def groups(id: int = None, title: str = None, description: str = None, type: str = None, entry_id: int = None, with_metadata: bool = False, limit: int = None, offset: int = None):
     with connect() as session:
         if id is not None or (title is not None and '%' not in title):
             group = db.get_group(session, id=id, title=title, with_metadata=with_metadata)
             return group
         else:
-            groups = db.get_groups(session, title=title, description=description, type=type, limit=limit, offset=offset)
+            groups = db.get_groups(session, title=title, description=description, type=type, entry_id=entry_id, limit=limit, offset=offset)
             return groups 
 
 

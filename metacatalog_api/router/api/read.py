@@ -123,6 +123,16 @@ def get_groups(title: str = None, description: str = None, type: str = None, lim
     return groups
 
 
+@read_router.get('/entries/{entry_id}/groups')
+@read_router.get('/entries/{entry_id}/groups.json')
+def get_groups_by_entry(entry_id: int) -> list[models.EntryGroup]:
+    try:
+        groups = core.groups(entry_id=entry_id, with_metadata=False)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    return groups
+
+
 @read_router.get('/groups/{group_id}')
 @read_router.get('/groups/{group_id}.json')
 def get_group(group_id) -> models.EntryGroupWithMetadata:
