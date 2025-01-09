@@ -7,6 +7,7 @@ from metacatalog_api.server import app, server
 
 # these imports load the functionality needed for this metacatalog server
 from metacatalog_api.apps.explorer.read import templates
+from metacatalog_api.apps.explorer import static_files
 from metacatalog_api.router.api.read import read_router as api_read_router
 from metacatalog_api.router.api.create import create_router as api_create_router
 from metacatalog_api.apps.explorer.create import create_router as explorer_create
@@ -37,7 +38,7 @@ app.include_router(api_read_router)
 app.include_router(api_create_router)
 
 # add the default explorer application (the HTML)
-app.mount(f"{server.app_prefix}static", StaticFiles(directory=Path(__file__).parent / "apps" / "explorer" / "templates" / "static"), name="static")
+app.mount(f"{server.app_prefix}static", static_files, name="static")
 app.include_router(explorer_router, prefix=f"/{server.app_name}")
 app.include_router(explorer_create, prefix=f"/{server.app_name}")
 
