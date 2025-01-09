@@ -234,11 +234,18 @@ def get_author_by_name(session: Session, name: str, strict: bool = False) -> mod
 
 
 def create_or_get_author(session: Session, author: models.AuthorCreate) -> models.Author:
-    sql = select(models.PersonTable).where(
-        models.PersonTable.first_name == author.first_name &
-        models.PersonTable.last_name == author.last_name &
-        models.PersonTable.organisation_name == author.organisation_name &
-        models.PersonTable.organisation_abbrev == author.organisation_abbrev
+    sql = select(models.PersonTable)
+    if author.is_organisation:
+        sql = sql.where(
+            (models.PersonTable.is_organisation == True) & 
+            (models.PersonTable.organisation_name == author.organisation_name) &
+            (models.PersonTable.organisation_abbrev == author.organisation_abbrev)
+        )
+    else:
+        sql = sql.where(
+            (models.PersonTable.is_organisation == False) & 
+            (models.PersonTable.first_name == author.first_name) &
+            (models.PersonTable.last_name == author.last_name)
     )
 
     author = session.exec(sql).first()
