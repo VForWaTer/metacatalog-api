@@ -1,4 +1,6 @@
 from fastapi import Request
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from starlette.middleware.cors import CORSMiddleware
 
 from metacatalog_api.server import app, server
@@ -27,7 +29,7 @@ def index(request: Request):
     This example app includes the explorer read and create routes
     which are powered by the api route
     """
-    return templates.TemplateResponse(request=request, name="index.html", context={"path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="index.html", context={"path": server.app_prefix})
 
 
 # add all api routes - currently this is only splitted into read and create
@@ -35,6 +37,7 @@ app.include_router(api_read_router)
 app.include_router(api_create_router)
 
 # add the default explorer application (the HTML)
+app.mount(f"{server.app_prefix}static", StaticFiles(directory=Path(__file__).parent / "apps" / "explorer" / "templates" / "static"), name="static")
 app.include_router(explorer_router, prefix=f"/{server.app_name}")
 app.include_router(explorer_create, prefix=f"/{server.app_name}")
 

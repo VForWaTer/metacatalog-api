@@ -12,7 +12,7 @@ explorer_router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / 'templates')
 
 # add static files
-explorer_router.mount("/static", StaticFiles(directory=Path(__file__).parent / "templates" / "static"), name="static")
+# explorer_router.mount("/static", StaticFiles(directory=Path(__file__).parent / "templates" / "static"), name="static")
 
 
 @explorer_router.get('/entries.html')
@@ -26,13 +26,13 @@ def get_entries_page(request: Request, offset: int = 0, limit: int = 100, search
     entries = core.entries(offset, limit, search=search, full_text=full_text, title=title, variable=variable) 
     
     # check if we should return html
-    return templates.TemplateResponse(request=request, name="entries.html", context={"entries": entries, "path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="entries.html", context={"entries": entries, "path": server.app_prefix})
 
 
 @explorer_router.get('/locations.html')
 def get_entries_geojson_page(request: Request):
     # check if we should return html
-    return templates.TemplateResponse(request=request, name="map.html", context={"path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="map.html", context={"path": server.app_prefix})
 
 
 @explorer_router.get('/entries/{id}.html')
@@ -44,7 +44,7 @@ def get_entry_page(id: int, request: Request):
         raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     
     # check if we should return html
-    return templates.TemplateResponse(request=request, name="entry.html", context={"entry": entries[0], "path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="entry.html", context={"entry": entries[0], "path": server.app_prefix})
     
 
 @explorer_router.get('/entries/{id}.xml')
@@ -56,7 +56,7 @@ def get_entry_radar_xml(id: int, request: Request):
     if len(entries) == 0:
         raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     
-    return templates.TemplateResponse(request=request, name="entry.radar.xml", context={"entry": entries[0], "path": server.uri_prefix}, media_type='application/xml')
+    return templates.TemplateResponse(request=request, name="entry.radar.xml", context={"entry": entries[0], "path": server.app_prefix}, media_type='application/xml')
 
 
 @explorer_router.get('/licenses.html')
@@ -71,7 +71,7 @@ def get_licenses_page(request: Request,  license_id: int | None = None):
     if license_id is not None:
         return templates.TemplateResponse(request=request, name="license.html", context={"license": licenses.model_dump()})
     else:
-        return templates.TemplateResponse(request=request, name="licenses.html", context={"licenses": licenses, "path": server.uri_prefix})
+        return templates.TemplateResponse(request=request, name="licenses.html", context={"licenses": licenses, "path": server.app_prefix})
 
 
 @explorer_router.get('/authors.html')
@@ -87,13 +87,13 @@ def get_authors_page(request: Request, entry_id: int | None = None, author_id: i
         return templates.TemplateResponse(
             request=request,
             name="author.html",
-            context={"author": authors, 'variant': 'fixed', 'target': target, "path": server.uri_prefix}
+            context={"author": authors, 'variant': 'fixed', 'target': target, "path": server.app_prefix}
         )
     
     return templates.TemplateResponse(
         request=request, 
         name="authors.html", 
-        context={"authors": authors, 'variant': 'select' if entry_id is None else 'list', 'target': target, "path": server.uri_prefix}
+        context={"authors": authors, 'variant': 'select' if entry_id is None else 'list', 'target': target, "path": server.app_prefix, "root_path": server.uri_prefix}
     )
 
 @explorer_router.get('/variables')
@@ -107,5 +107,5 @@ def get_variables_page(request: Request, offset: int = None, limit: int = None):
     return templates.TemplateResponse(
         request=request, 
         name="variables.html", 
-        context={"variables": variables, "path": server.uri_prefix}
+        context={"variables": variables, "path": server.app_prefix}
     )

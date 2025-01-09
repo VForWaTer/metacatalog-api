@@ -93,8 +93,8 @@ def get_variables(only_available: bool = False, offset: int = None, limit: int =
 
     return variables
 
-@read_router.get('/variable/{id}')
-@read_router.get('/variable/{id}.json')
+@read_router.get('/variables/{id}')
+@read_router.get('/variables/{id}.json')
 def get_variable(id: int):
     try:
         variable = core.variables(id=id)

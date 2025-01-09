@@ -10,7 +10,7 @@ templates = Jinja2Templates(directory=Path(__file__).parent / 'templates')
 
 @create_router.get('/create/entries.html')
 def new_entry_page(request: Request):
-    return templates.TemplateResponse(request=request, name="add_entry.html", context={"path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="add_entry.html", context={"path": server.app_prefix})
 
 
 @create_router.get("/utils/leaflet_draw.html")
@@ -23,16 +23,16 @@ def leaflet_draw(request: Request, geom: str = 'marker'):
 
 @create_router.get('/create/authors.html')
 def new_author(request: Request):
-    return templates.TemplateResponse(request=request, name="author.html", context={"path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="author.html", context={"path": server.app_prefix})
 
 
 @create_router.get('/create/details.html')
 def new_details(request: Request):
-    return templates.TemplateResponse(request=request, name="details.html", context={"path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="details.html", context={"path": server.app_prefix})
 
 
 @create_router.get('/create/datasources.html')
 def new_datasource(request: Request):
     # load the datasource types
     types = core.datatypes()
-    return templates.TemplateResponse(request=request, name="add_datasource.html", context={"types": types, "path": server.uri_prefix})
+    return templates.TemplateResponse(request=request, name="add_datasource.html", context={"types": types, "path": server.app_prefix})

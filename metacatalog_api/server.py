@@ -31,6 +31,11 @@ class Server(BaseSettings):
         
         if not path.endswith('/'):
             path += '/'
+        return path
+    
+    @property
+    def app_prefix(self):
+        path = self.uri_prefix
         
         if self.app_name.startswith('/'):
             path += self.app_name.strip('/')
@@ -50,7 +55,7 @@ logger = logging.getLogger('uvicorn.error')
 
 # create the server object
 server = Server()
-logger.info(server.uri_prefix, server.root_path, server.app_name)
+logger.info(server.app_prefix, server.root_path, server.app_name)
 
 
 # before we initialize the app, we check that the database is installed and up to date
