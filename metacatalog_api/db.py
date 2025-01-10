@@ -248,12 +248,11 @@ def create_or_get_author(session: Session, author: models.AuthorCreate) -> model
             (models.PersonTable.last_name == author.last_name)
     )
 
-    author = session.exec(sql).first()
-    if author is None:
-        session.add(models.PersonTable.model_validate(author))
-        session.commit()
-        session.refresh(author)
-    return models.Author.model_validate(author)
+    existing_author = session.exec(sql).first()
+    if existing_author is not None:
+        return models.Author.model_validate(existing_author)
+    else:
+        return add_author(session, author)
 
 
 def add_author(session: Session, author: models.AuthorCreate) -> models.Author:
@@ -368,6 +367,7 @@ def add_entry(session: Session, payload: models.EntryCreate, author_duplicates: 
         author = session.get(models.PersonTable, payload.author)
     elif not author_duplicates:
         author = create_or_get_author(session, payload.author)
+        author = session.get(models.PersonTable, author.id)
     else:
         author = models.PersonTable.model_validate(payload.author)
     
@@ -380,7 +380,9 @@ def add_entry(session: Session, payload: models.EntryCreate, author_duplicates: 
             if isinstance(coAuthor, int):
                 coAuthors.append(session.get(models.PersonTable, coAuthor))
             elif not author_duplicates:
-                coAuthors.append(create_or_get_author(session, coAuthor))
+                coAuthor = create_or_get_author(session, coAuthor)
+                coAuthor = session.get(models.PersonTable, coAuthor.id)
+                coAuthors.append(coAuthor)
             else:
                 coAuthors.append(models.PersonTable.model_validate(coAuthor))
     
@@ -395,7 +397,6 @@ def add_entry(session: Session, payload: models.EntryCreate, author_duplicates: 
         title=payload.title,
         abstract=payload.abstract,
         external_id=payload.external_id,
-        #location=payload.location,
         version=payload.version,
         is_partial=payload.is_partial,
         comment=payload.comment,

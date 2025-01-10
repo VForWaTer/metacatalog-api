@@ -420,7 +420,7 @@ class EntryTable(EntryBase, table=True):
 
     # relationships
     license: LicenseTable = Relationship(back_populates='entries')
-    author: PersonTable = Relationship()
+    author: PersonTable = Relationship(back_populates='entries')
     coAuthors: list[PersonTable] = Relationship(link_model=NMPersonEntries)
     variable: VariableTable = Relationship(back_populates='entries')
     keywords: list[KeywordTable] = Relationship(back_populates='entries', link_model=NMKeywordsEntries)
