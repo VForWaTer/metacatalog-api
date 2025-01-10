@@ -1,3 +1,5 @@
+{% set menu_style = request.query_params.get('default') == 'default' %}
+{% if menu_style == 'default' %}
 <nav class="bg-gray-200">
     <div class="mx-auto px-1">
         <div class="flex h-16 item-center justify-between">
@@ -18,6 +20,7 @@
         </div>
     </div>
 </nav>
+{% endif %}
 <div class="p-8 sm:p-4">
     <div class="px-4 sm:px-0">
         <h3 class="text-base font-semibold leading-7 text-gray-900">
@@ -76,8 +79,16 @@
     <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Authors</h4>
     <div class="mt-1 border-t border-gray-200">
         <dl class="divide-y divide-gray-200">
-            
-            {% for author in entry.authors %}
+            <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                {% if entry.author.last_name is none  %}
+                    <dt class="text-sm font-medium leading-6 text-gray-900">Oragnisation</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.author.organisation_name}} ({{entry.author.organisation_abbrev}})</dd>
+                {% else %}
+                    <dt class="text-sm font-medium leading-6 text-gray-900">{{ entry.author.first_name }} {{entry.author.last_name }}</dt>
+                    <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{entry.author.affiliation}}</dd>
+                {% endif %}   
+            </div>
+            {% for author in entry.coAuthors %}
                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
                     {% if author.last_name is none  %}
                         <dt class="text-sm font-medium leading-6 text-gray-900">Oragnisation</dt>
@@ -152,7 +163,7 @@
                                         <span class="font-medium text-gray-900">Extent</span>
                                         <span>
                                             {{entry.datasource.temporal_scale.extent[0].strftime('%d.%m.%Y %H:%M') }}
-                                             - 
+                                            - 
                                             {{entry.datasource.temporal_scale.extent[1].strftime('%d.%m.%Y %H:%M') }}
 
                                         </span>
@@ -183,7 +194,7 @@
         <dl class="divide-y divide-gray-200">
             {% for detail in entry.details %}
                 <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
-                    <dt class="text-sm font-medium leading-6 text-gray-900">{{ detail.key }} (stem: {{ detail.stem }})</dt>
+                    <dt class="text-sm font-medium leading-6 text-gray-900">{{ detail.key }}</dt>
                     <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{detail.value}}</dd>
                 </div>
             {% endfor %}
