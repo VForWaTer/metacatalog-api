@@ -1,4 +1,4 @@
-{% set menu_style = request.query_params.get('default') == 'default' %}
+{% set menu_style = request.query_params.get('default') %}
 {% if menu_style == 'default' %}
 <nav class="bg-gray-200">
     <div class="mx-auto px-1">
