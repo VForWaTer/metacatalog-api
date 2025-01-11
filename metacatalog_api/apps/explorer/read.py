@@ -56,7 +56,7 @@ def get_entry_radar_xml(id: int, request: Request):
     if len(entries) == 0:
         raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     
-    return templates.TemplateResponse(request=request, name="entry.radar.xml", context={"entry": entries[0], "path": server.app_prefix}, media_type='application/xml')
+    return templates.TemplateResponse(request=request, name="entry.xml", context={"entry": entries[0], "path": server.app_prefix}, media_type='application/xml')
 
 
 @explorer_router.get('/licenses.html')
