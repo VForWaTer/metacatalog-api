@@ -2,14 +2,149 @@
 <Metadata>
     <Title>{{ entry.title }}</Title>
     <Version>{{ entry.version }}</Version>
+    <Identifier type="UUID">{{ entry.uuid }}</Identifier>
     <ExternalId>{{ entry.external_id }}</ExternalId>
     <Abstract>
         {{ entry.abstract }}
     </Abstract>
+    {% if entry.comment is not none %}
+        <Comment>{{ entry.comment }}</Comment>
+    {% endif %}
+    {% if entry.citation is not none %}
+        <Citation>{{ entry.citation }}</Citation>
+    {% endif %}
+    {% if entry.embargo is not none %}
+        <Embargo embargo="{{ entry.embargo }}">
+            <EmbargoEnd>{{ entry.embargo_end }}</EmbargoEnd>
+        </Embargo>
+    {% endif %}
+    <Dates>
+        <Date>
+            <DateTime>{{ entry.publication }}</DateTime>
+            <DateType>publication</DateType>
+        </Date>
+        <Date>
+            <DateTime>{{ entry.lastUpdate }}</DateTime>
+            <DateType>lastUpdate</DateType>
+        </Date>
+    </Dates>
+    {% if entry.location is not none %}
+        <Location>
+            <CRS>EPSG:4326</CRS>
+            <Point>
+                <Longitude>{{ entry.location.lon }}</Longitude>
+                <Latitude>{{ entry.location.lat }}</Latitude>
+            </Point>
+        </Location>
+    {% endif %}
     <License link="{{ entry.license.link }}">
         {{ entry.license.summary }}
     </License>
-    <Keyword>
-        {{ entry.variable.keyword.path }}
-    </Keyword>
+    <Variable>
+        <Name>{{ entry.variable.name }}</Name>
+        <Symbol>{{ entry.variable.symbol }}</Symbol>
+        <Unit>
+            <Name>{{ entry.variable.unit.name }}</Name>
+            <Symbol>{{ entry.variable.unit.symbol }}</Symbol>
+        </Unit>
+        {% if entry.variable.keyword is not none %}
+            <Keyword>
+                <Value>{{ entry.variable.keyword.path }}</Value>
+                <Thesaurus link="{{ entry.variable.keyword.thesaurus.url }}">
+                    <Name>{{ entry.variable.keyword.thesaurus.title }}</Name>
+                    <Description>{{ entry.variable.keyword.thesaurus.description }}</Description>
+                </Thesaurus>
+            </Keyword>
+        {% endif %}
+    </Variable>
+    <Author is_organisation="{{ entry.author.is_organisation }}">
+        {% if entry.author.is_organisation %}
+            <Name>{{ entry.author.organisation_name }}</Name>
+            <Abbreviation>{{ entry.author.organisation_abbrev }}</Abbreviation>
+        {% else %}
+            <Name>{{ entry.author.first_name }} {{ entry.author.last_name }}</Name>
+        {% endif %}
+        <Affiliation>{{ entry.author.affiliation }}</Affiliation>
+    </Author>
+    {% if entry.coAuthors is not none and entry.coAuthors|length > 0 %}
+        <CoAuthors>
+            {% for author in entry.coAuthors %}
+                <Author is_organisation="{{ author.is_organisation }}">
+                    {% if author.is_organisation %}
+                        <Name>{{ author.organisation_name }}</Name>
+                        <Abbreviation>{{ author.organisation_abbrev }}</Abbreviation>
+                    {% else %}
+                        <Name>{{ author.first_name }} {{ author.last_name }}</Name>
+                    {% endif %}
+                    <Affiliation>{{ author.affiliation }}</Affiliation>
+                </Author>
+            {% endfor %}
+        </CoAuthors>
+    {% endif %}
+    {% if entry.datasource is not none %}
+        <Datasource>
+            <Type>
+                <Title>{{ entry.datasource.type.title }}</Title>
+                <Description>{{ entry.datasource.type.description }}</Description>
+            </Type>
+            <Path>{{ entry.datasource.path }}</Path>
+            <Encoding>{{ entry.datasource.encoding }}</Encoding>
+            <VariableNames>
+                {% for name in entry.datasource.variable_names %}
+                    <VariableName>{{ name }}</VariableName>
+                {% endfor %}
+            </VariableNames>
+            <Arguments>
+                {% for arg, val in entry.datasource.args.items() %}
+                    <Argument>
+                        <Name>{{ arg }}</Name>
+                        <Value>{{ val }}</Value>
+                    </Argument>
+                {% endfor %}
+            </Arguments>
+            <Scales>
+                {% if entry.datasource.temporal_scale is not none %}
+                    <TemporalScale>
+                        <Resolution>{{ entry.datasource.temporal_scale.resolution }}</Resolution>
+                        <ObservationStart>{{ entry.datasource.temporal_scale.observation_start }}</ObservationStart>
+                        <ObservationEnd>{{ entry.datasource.temporal_scale.observation_end }}</ObservationEnd>
+                        <Support>{{ entry.datasource.temporal_scale.support }}</Support>
+                        <DimensionNames>
+                            {% for name in entry.datasource.temporal_scale.dimension_names %}
+                                <DimensionName>{{ name }}</DimensionName>
+                            {% endfor %}
+                        </DimensionNames>
+                    </TemporalScale>
+                {% endif %}
+                {% if entry.datasource.spatial_scale is not none %}
+                    <SpatialScale>
+                        <Resolution>
+                            <Value>{{ entry.datasource.spatial_scale.resolution }}</Value>
+                            <Unit>meter</Unit>
+                        </Resolution>
+                        <Extent>
+                            <CRS>EPSG:4326</CRS>
+                            <Type>Polygon</Type>
+                            {% for poly in entry.datasource.spatial_scale.extent.coordinates %}
+                                <Coordinates>
+                                    {% for coord in poly %}
+                                        <Point>
+                                            <Longitude>{{ coord[0] }}</Longitude>
+                                            <Latitude>{{ coord[1] }}</Latitude>
+                                        </Point>
+                                    {% endfor %}
+                                </Coordinates>
+                            {% endfor %}
+                        </Extent>
+                        <Support>{{ entry.datasource.spatial_scale.support }}</Support>
+                        <DimensionNames>
+                            {% for name in entry.datasource.spatial_scale.dimension_names %}
+                                <DimensionName>{{ name }}</DimensionName>
+                            {% endfor %}
+                        </DimensionNames>
+                    </SpatialScale>
+                {% endif %}
+            </Scales>
+        </Datasource>
+    {% endif %}
 </Metadata>
