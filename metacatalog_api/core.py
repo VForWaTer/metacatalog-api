@@ -9,13 +9,15 @@ from dotenv import load_dotenv
 from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import db
-#from metacatalog_api import __version__ as metacatalog_version
+from metacatalog_api.file_uploads import UploadCache
 
 
 load_dotenv()
 
 METACATALOG_URI = os.environ.get("METACATALOG_URI", 'postgresql://metacatalog:metacatalog@localhost:5432/metacatalog')
 SQL_DIR = Path(__file__).parent / "sql"
+
+cache = UploadCache()
 
 
 @contextmanager
@@ -25,6 +27,7 @@ def connect(url: str = None) -> Generator[Session, None, None]:
 
     with Session(engine) as session:
         yield session
+
 
 def get_session(url: str = None) -> Session:
     if url is None:
@@ -194,6 +197,11 @@ def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> m
     
         # check if there was a datasource
         if payload.datasource is not None:
+            # if the path is in the UploadCache, the file was already uploaded and just needs to be copied
+            if payload.path in cache:
+                new_path = cache.save_to_data(file_hash=payload.path)
+                payload.path = new_path
+
             entry = db.add_datasource(session, entry_id=entry.id, datasource=payload.datasource)
         session.commit()
 
@@ -205,6 +213,11 @@ def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> m
 
 
 def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Metadata:
+    # if the path is in the UploadCache, the file was already uploaded and just needs to be copied
+    if payload.path in cache:
+        new_path = cache.save_to_data(file_hash=payload.path)
+        payload.path = new_path
+
     with connect() as session:
         entry = db.add_datasource(session, entry_id=entry_id, datasource=payload)
 
