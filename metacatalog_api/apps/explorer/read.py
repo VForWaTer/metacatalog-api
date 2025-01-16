@@ -39,12 +39,13 @@ def get_entries_geojson_page(request: Request):
 def get_entry_page(id: int, request: Request):
     # call the function
     entries = core.entries(ids=id)
+    groups = core.groups(entry_id=id)
     
     if len(entries) == 0:
         raise HTTPException(status_code=404, detail=f"Entry of <ID={id}> not found")
     
     # check if we should return html
-    return templates.TemplateResponse(request=request, name="entry.html", context={"entry": entries[0], "path": server.app_prefix})
+    return templates.TemplateResponse(request=request, name="entry.html", context={"entry": entries[0], "groups": groups,  "path": server.app_prefix})
     
 
 @explorer_router.get('/entries/{id}.xml')

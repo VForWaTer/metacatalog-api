@@ -101,6 +101,21 @@
             {% endfor %}
         </dl>
     </div>
+
+    {% if groups and groups|length > 0  %}
+        <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Groups</h4>
+        <div class="mt-1 border-t border-gray-200">
+            <dl class="divide-y divide-gray-200">
+                {% for group in groups %}
+                    <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                        <dt class="text-sm font-medium leading-6 text-gray-900">{{ group.type.name }}</dt>
+                        <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">
+                            {{ group.title }}
+                        </dd>
+                    </div>
+            </dl>
+        </div>
+    {% endif %}
     
     {% if entry.datasource is not none %}
         <h4 class="mt-6 text-base font-semibold leading-7 text-gray-900">Data Source</h4>
