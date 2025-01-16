@@ -1,0 +1,101 @@
+{% set embedded = request.query_params.get('embedded') == 'true' %}
+<div class="p-4">
+    <form hx-encoding="multipart/form-data" hx-post="{{path}}uploads?embedded=true" class="space-y-6" hx-target="#file-details">
+        <!-- File Dropzone -->
+        <div class="w-full"
+            x-data="{ 
+                dragOver: false,
+                fileSelected: false,
+                fileName: '',
+                handleDrop(e) {
+                    this.dragOver = false;
+                    this.fileSelected = true;
+                    this.fileName = e.dataTransfer.files[0].name;
+                    const input = this.$refs.fileInput;
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change'));
+                    // Submit form immediately after file drop
+                    this.$el.closest('form').requestSubmit();
+                }
+            }"
+        >   
+            <!-- Hidden file input -->
+            <input 
+                type="file" 
+                name="file"
+                x-ref="fileInput"
+                class="hidden"
+                @change="
+                    fileSelected = true; 
+                    fileName = $event.target.files[0]?.name || '';
+                    // Submit form immediately after file selection
+                    $el.closest('form').requestSubmit();
+                "
+            >
+
+            <!-- Dropzone area -->
+            <div
+                @dragover.prevent="dragOver = true"
+                @dragleave.prevent="dragOver = false"
+                @drop.prevent="handleDrop($event)"
+                @click="$refs.fileInput.click()"
+                :class="{ 
+                    'border-blue-500 bg-blue-50': dragOver,
+                    'border-gray-300 hover:border-gray-400': !dragOver 
+                }"
+                class="w-full px-6 py-8 border-2 border-dashed rounded-md cursor-pointer transition-colors duration-200 focus:outline-none"
+            >
+                <div class="text-center">
+                    <!-- Upload icon -->
+                    <template x-if="!fileSelected">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </template>
+                    
+                    <!-- Success icon -->
+                    <template x-if="fileSelected">
+                        <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </template>
+
+                    <!-- Text content -->
+                    <div class="mt-4 flex flex-col items-center text-sm text-gray-600">
+                        <template x-if="!fileSelected">
+                            <div>
+                                <span class="font-semibold text-blue-600 hover:text-blue-500">Click to upload</span>
+                                <span class="text-gray-600"> or drag and drop</span>
+                            </div>
+                        </template>
+                        <template x-if="fileSelected">
+                            <span class="text-green-600 font-medium" x-text="fileName"></span>
+                        </template>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Any file up to 10MB</p>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- File Details Area -->
+    <div id="file-details" class="mt-8 pt-6"></div>
+</div>
+
+{% if not embedded %}
+<script src="{{ path }}static/metacatalog.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
+<script src="https://unpkg.com/htmx.org@2.0.2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+<script src="//unpkg.com/alpinejs" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/snowball@0.3.1/stemmer/lib/Snowball.min.js"></script>
+<!-- leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+{% endif %}

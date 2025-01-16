@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.min.css" rel="stylesheet">
 
-    <script src="{{ path }}js/metacatalog.js"></script>
+    <script src="{{ path }}static/metacatalog.js"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -33,8 +33,18 @@
         <h3 class="text-lg font-semibold text-gray-800">General</h3>
         
         <div class="flex items-center space-x-12">
-            <label for="title" class="text-sm font-medium text-gray-700">Path</label>
-            <input type="text" name="datasource.path" id="title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% if file_hash is not none %}
+                <label for="datasource.path" class="text-sm font-medium text-gray-700">Uploaded File</label>
+                <input type="text" name="datasource.path" id="datasource.path" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{file_info.filename}}" readonly>
+                <p class="text-sm text-gray-500 mt-1">
+                    Internal Hash: {{ file_hash }}
+                    <br>
+                    {{file_info.size}} bytes;  last modified: {{file_info.last_modified}}
+                </p>
+            {% else %}
+                <label for="datasource.path" class="text-sm font-medium text-gray-700">Path</label>
+                <input type="text" name="datasource.path" id="datasource.path" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% endif %}
         </div>
 
         <div class="flex items-center space-y-6 space-x-12">

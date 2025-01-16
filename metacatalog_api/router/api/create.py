@@ -16,6 +16,7 @@ def add_datasource(entry_id: int, payload: models.DatasourceCreate) -> models.Me
     metadata = core.add_datasource(entry_id=entry_id, payload=payload)
     return metadata
 
+
 @create_router.post('/authors')
 def add_author(payload: models.AuthorCreate, no_duplicates: bool = True) -> models.Author:
     """
@@ -24,6 +25,7 @@ def add_author(payload: models.AuthorCreate, no_duplicates: bool = True) -> mode
     """
     author = core.add_author(payload, no_duplicates=no_duplicates)
     return author
+
 
 @create_router.post('/groups')
 def add_group(payload: models.EntryGroupCreate) -> models.EntryGroup:
