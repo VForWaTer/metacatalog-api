@@ -1,0 +1,35 @@
+<div x-data="{limit: 25, offset: 0}">
+    <div id="map-content" class="mx-auto" hx-trigger="load" hx-get="{{ path }}locations.html" hx-swap="innerHTML">
+    </div>
+    <div id="action-area" class="mt-4 w-full flex justify-center"> 
+        <form 
+            class="w-fit"
+            hx-get="{{ path }}entries.html" 
+            hx-trigger="submit, input from:#search delay:800ms"
+            hx-target="#main-content" 
+            hx-swap="innerHTML"
+            hx-on::after-request="updateEntryLayer(document.getElementById('search').value)"
+        >
+            <input 
+                type="text" name="search" id="search" placeholder="Search for data" 
+                class="shadow appearance-none border rounded w-96 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
+            />
+            <input type="hidden" name="foo" value="bar"/>
+        </form>
+    </div>
+    <div 
+        id="main-content" 
+        class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8" 
+        hx-get="{{ path }}entries.html" 
+        hx-trigger="load" 
+        hx-swap="innerHTML"
+    ></div>
+</div>
+<script>
+    function EntriesPagination() {
+        return {
+            limit: 25,
+            offset: 0
+        }
+    }
+</script>
