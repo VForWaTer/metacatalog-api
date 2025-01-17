@@ -33,7 +33,7 @@
         <h3 class="text-lg font-semibold text-gray-800">General</h3>
         
         <div class="flex items-center space-x-12">
-            {% if file_hash is not none %}
+            {% if file_hash and file_info %}
                 <label for="datasource.path" class="text-sm font-medium text-gray-700">Uploaded File</label>
                 <input type="text" name="datasource.path" id="datasource.path" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value="{{file_info.filename}}" readonly>
                 <p class="text-sm text-gray-500 mt-1">
