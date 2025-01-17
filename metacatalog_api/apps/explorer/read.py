@@ -15,8 +15,12 @@ templates = Jinja2Templates(directory=Path(__file__).parent / 'templates')
 # explorer_router.mount("/static", StaticFiles(directory=Path(__file__).parent / "templates" / "static"), name="static")
 
 
+@explorer_router.get('/page/entries.html')
+def get_entries_page(request: Request):
+    return templates.TemplateResponse(request=request, name="page_entries.html", context={"path": server.app_prefix})
+
 @explorer_router.get('/entries.html')
-def get_entries_page(request: Request, offset: int = 0, limit: int = 100, search: str = None, full_text: bool = True, title: str = None, description: str = None, variable: str = None):
+def get_entries(request: Request, offset: int = 0, limit: int = 100, search: str = None, full_text: bool = True, title: str = None, description: str = None, variable: str = None):
 
     # sanitize the search
     if search is not None and search.strip() == '':

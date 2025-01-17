@@ -32,7 +32,7 @@ def index(request: Request):
     This example app includes the explorer read and create routes
     which are powered by the api route
     """
-    return templates.TemplateResponse(request=request, name="index.html", context={"path": server.app_prefix})
+    return templates.TemplateResponse(request=request, name="index.html", context={"path": server.app_prefix, "root_path": server.uri_prefix})
 
 
 # add all api routes - currently this is only splitted into read and create

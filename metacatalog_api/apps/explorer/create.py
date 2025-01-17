@@ -8,8 +8,13 @@ from metacatalog_api.server import server
 create_router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent / 'templates')
 
-@create_router.get('/create/entries.html')
+
+@create_router.get('/page/create_metadata.html')
 def new_entry_page(request: Request):
+    return templates.TemplateResponse(request=request, name="page_create_metadata.html", context={"path": server.app_prefix})
+
+@create_router.get('/create/entries.html')
+def new_entry(request: Request):
     return templates.TemplateResponse(request=request, name="add_entry.html", context={"path": server.app_prefix})
 
 
