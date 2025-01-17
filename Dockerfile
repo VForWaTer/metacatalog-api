@@ -13,7 +13,8 @@ RUN pip install --upgrade pip && \
     #pip install poetry && \
     # poetry config virtualenvs.create false && \
     #cd /app && poetry install
-    cd /app && pip install -e .
+    cd /app && pip install -e . && \
+    pip install fire
 
 WORKDIR /app
 
