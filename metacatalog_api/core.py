@@ -198,9 +198,9 @@ def add_entry(payload: models.EntryCreate, author_duplicates: bool = False) -> m
         # check if there was a datasource
         if payload.datasource is not None:
             # if the path is in the UploadCache, the file was already uploaded and just needs to be copied
-            if payload.path in cache:
+            if payload.datasource.path in cache:
                 new_path = cache.save_to_data(file_hash=payload.path)
-                payload.path = new_path
+                payload.datasource.path = new_path
 
             entry = db.add_datasource(session, entry_id=entry.id, datasource=payload.datasource)
         session.commit()
