@@ -1,5 +1,4 @@
 {% set standalone = request.query_params.get('standalone') == 'true' %}
-
 <div id="form" x-data="formContext()">
     <div x-data="{open: true}">
         <div class="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-300 cursor-pointer" @click="open = !open">

@@ -1,22 +1,54 @@
-{% set menu_style = request.query_params.get('default') %}
+{% set menu_style = request.query_params.get('menu', 'default') %}
 {% if menu_style == 'default' %}
-<nav class="bg-gray-200">
-    <div class="mx-auto px-1">
-        <div class="flex h-16 item-center justify-between">
-            <div class="flex items-center">
-                <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
+<nav class="border-b border-gray-200">
+    <div class="mx-auto px-2">
+        <div class="flex h-12 items-center justify-between">
+            
+            <div class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 hover:cursor-pointer">
+                <a class="inline-flex items-center" hx-get="{{ path }}entries.html" hx-target="#main-content" hx-swap="innerHTML" hx-include="#search">
+                    <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    back
+                </a>
+            </div>
+            
+            <div class="relative" x-data="{ open: false }">
+                <button 
+                    @click="open = !open"
+                    @click.outside="open = false"
+                    class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                >
+                    Export Metadata
+                    <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div 
+                    x-show="open"
+                    x-transition
+                    class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                >
+                    <div class="py-1">
                         <a 
-                            class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer bg-white" 
-                            hx-get="{{ path }}entries.html" hx-target="#main-content" hx-swap="innerHTML" hx-include="#search"
-                        >back to metadata List</a>
-                        <a
-                            class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer bg-white"
-                            href="{{ path }}entries/{{ entry.id }}.xml" target="_blank"
-                        >XML</a>
+                            href="{{ root_path }}entries/{{ entry.id }}.json"
+                            target="_blank"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                            View JSON
+                        </a>
+                        <a 
+                            href="{{ path }}entries/{{ entry.id }}.xml" 
+                            target="_blank"
+                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                            Metacatalog XML
+                        </a>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </nav>
@@ -113,6 +145,7 @@
                             {{ group.title }}
                         </dd>
                     </div>
+                    {% endfor %}
             </dl>
         </div>
     {% endif %}
@@ -220,4 +253,7 @@
 {% set embedded = request.query_params.get('embedded') == 'true' %}
 {% if not embedded %}
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
 {% endif %}
