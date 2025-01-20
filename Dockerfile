@@ -14,7 +14,8 @@ RUN pip install --upgrade pip && \
     # poetry config virtualenvs.create false && \
     #cd /app && poetry install
     cd /app && pip install -e . && \
-    pip install fire
+    pip install fire  && \
+    pip install debugpy
 
 WORKDIR /app
 

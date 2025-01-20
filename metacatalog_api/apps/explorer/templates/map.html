@@ -25,7 +25,7 @@
         }).addTo(map);
 
         // create a function to update the entry layer
-        function updateEntryLayer(search =null, ids =null) {
+        function updateEntryLayer(search =null, ids =null, limit =null, offset =null) {
             // build params
             const params = new URLSearchParams();
             if (search) {
@@ -33,6 +33,12 @@
             }
             if (ids) {
                 params.append('ids', ids);
+            }
+            if (limit) {
+                params.append('limit', limit)
+            }
+            if (offset) {
+                params.append('offset', offset)
             }
             const url = `/locations.json?${params}`
             console.log(url);

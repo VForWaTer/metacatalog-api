@@ -1,35 +1,82 @@
-<div x-data="{limit: 25, offset: 0}">
-    <div id="map-content" class="mx-auto" hx-trigger="load" hx-get="{{ path }}locations.html" hx-swap="innerHTML">
-    </div>
+<div x-data="EntriesPagination()">
+    <div 
+        id="map-content" 
+        class="mx-auto" 
+        :hx-get="`{{ path }}locations.html?limit=${limit}&offset=0`" 
+        hx-trigger="load" 
+        hx-swap="innerHTML"
+    ></div>
     <div id="action-area" class="mt-4 w-full flex justify-center"> 
         <form 
             class="w-fit"
-            hx-get="{{ path }}entries.html" 
+            :hx-get="`{{ path }}entries.html?limit=${limit}&offset=0&search=${searchQuery}`"
             hx-trigger="submit, input from:#search delay:800ms"
             hx-target="#main-content" 
             hx-swap="innerHTML"
-            hx-on::after-request="updateEntryLayer(document.getElementById('search').value)"
+            :hx-on::before-request="resetPagination()"
+            :hx-on::after-request="`updateEntryLayer($el.querySelector('#search').value, null, 10, 0)`"
         >
             <input 
-                type="text" name="search" id="search" placeholder="Search for data" 
+                type="text"
+                id="search"
+                x-model="searchQuery"
+                placeholder="Search for data" 
                 class="shadow appearance-none border rounded w-96 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline"
             />
-            <input type="hidden" name="foo" value="bar"/>
         </form>
+    </div>
+    <div class="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8 text-sm text-gray-500 flex justify-between items-center">
+        <div>
+            Showing <span x-text="offset + 1"></span> to <span x-text="offset + limit"></span> entries
+        </div>
+        <div class="flex gap-2">
+            <button 
+                @click="previousPage()"
+                :disabled="offset === 0"
+                class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Previous
+            </button>
+            <button 
+                @click="nextPage()"
+                class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100"
+            >
+                Next
+            </button>
+        </div>
     </div>
     <div 
         id="main-content" 
         class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8" 
-        hx-get="{{ path }}entries.html" 
-        hx-trigger="load" 
+        :hx-get="`{{ path }}entries.html?limit=${limit}&offset=${offset}&search=${searchQuery}`"
+        hx-trigger="load, refresh" 
         hx-swap="innerHTML"
     ></div>
 </div>
 <script>
     function EntriesPagination() {
         return {
-            limit: 25,
-            offset: 0
+            limit: 10,
+            offset: 0,
+            searchQuery: '',
+            resetPagination() {
+                this.offset = 0;
+                this.limit = 10;
+            },
+            nextPage() {
+                this.offset += this.limit;
+                this.refreshContent();
+            },
+            previousPage() {
+                if (this.offset >= this.limit) {
+                    this.offset -= this.limit;
+                    this.refreshContent();
+                }
+            },
+            refreshContent() {
+                htmx.trigger('#main-content', 'refresh');
+                updateEntryLayer(this.searchQuery, null, this.limit, this.offset);
+            }
         }
     }
 </script>
