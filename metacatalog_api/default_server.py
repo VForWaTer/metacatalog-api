@@ -1,6 +1,4 @@
-from fastapi import Request
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+from fastapi import Request, Depends
 from starlette.middleware.cors import CORSMiddleware
 
 from metacatalog_api.server import app, server
@@ -9,7 +7,7 @@ from metacatalog_api.server import app, server
 from metacatalog_api.apps.explorer.read import templates
 from metacatalog_api.apps.explorer import static_files
 from metacatalog_api.router.api.read import read_router as api_read_router
-from metacatalog_api.router.api.create import create_router as api_create_router
+from metacatalog_api.router.api.create import create_router as api_create_router, validate_api_key
 from metacatalog_api.router.api.upload import upload_router
 from metacatalog_api.apps.explorer.create import create_router as explorer_create
 from metacatalog_api.apps.explorer.read import explorer_router
@@ -37,8 +35,8 @@ def index(request: Request):
 
 # add all api routes - currently this is only splitted into read and create
 app.include_router(api_read_router)
-app.include_router(api_create_router)
-app.include_router(upload_router)
+app.include_router(api_create_router, dependencies=[Depends(validate_api_key)])
+app.include_router(upload_router, dependencies=[Depends(validate_api_key)])
 
 # add the default explorer application (the HTML)
 app.mount(f"{server.app_prefix}static", static_files, name="static")
