@@ -2,6 +2,7 @@ from typing import List, Generator
 import os
 from pathlib import Path
 from contextlib import contextmanager
+from datetime import datetime
 
 from sqlmodel import Session, create_engine, text
 from metacatalog_api import models
@@ -10,6 +11,7 @@ from pydantic_geojson import FeatureCollectionModel
 
 from metacatalog_api import db
 from metacatalog_api.file_uploads import UploadCache
+from metacatalog_api import access_control
 
 
 load_dotenv()
@@ -59,7 +61,14 @@ def migrate_db(schema: str = 'public') -> None:
         
         # finally call the migration function recursively
         migrate_db()
-        
+
+
+def register_token(user: models.Author | None = None, valid_until: datetime | None = None):
+    with connect() as session:
+        new_key = access_control.register_new_token(session, user, valid_until)
+
+    print(f"Generated a new token. Save this token in a save space as it will not be displayed again:\n{new_key}\n")
+
 
 def entries(offset: int = 0, limit: int = None, ids: int | List[int] = None, full_text: bool = True, search: str = None, variable: str | int = None, title: str = None) -> list[models.Metadata]:
     # check if we filter or search

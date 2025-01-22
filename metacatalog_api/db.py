@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from metacatalog_api import models
 from sqlmodel import select, exists, col
 
-DB_VERSION = 3
+DB_VERSION = 4
 SQL_DIR = Path(__file__).parent / "sql"
 
 # helper function to load sql files
