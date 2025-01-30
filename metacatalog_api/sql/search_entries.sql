@@ -1,5 +1,13 @@
 WITH filtered_entries AS (
-	SELECT * FROM entries 
+	SELECT entries.* FROM entries 
+	LEFT JOIN datasources ON datasources.id=entries.datasource_id
+	LEFT JOIN spatial_scales ON spatial_scales.id=datasources.id
+	WHERE
+	( 
+			(spatial_scales.extent is not null and st_intersects(spatial_scales.extent, st_setSRID(st_geomfromtext(:geolocation), 4326))) 
+		OR
+			(entries.location is not null and st_within(entries.location, st_setSRID(st_geomfromtext(:geolocation), 4326)))
+	)
 	{filter}
 ),
 weights AS (

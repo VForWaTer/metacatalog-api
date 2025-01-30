@@ -9,14 +9,14 @@ read_router = APIRouter()
 
 @read_router.get('/entries')
 @read_router.get('/entries.json')
-def get_entries(offset: int = 0, limit: int = 100, search: str = None, full_text: bool = True, title: str = None, description: str = None, variable: str = None):
+def get_entries(offset: int = 0, limit: int = 100, search: str = None, full_text: bool = True, title: str = None, description: str = None, variable: str = None, geolocation: str = None):
 
     # sanitize the search
     if search is not None and search.strip() == '':
         search = None
 
     # call the function
-    entries = core.entries(offset, limit, search=search, full_text=full_text, title=title, variable=variable) 
+    entries = core.entries(offset, limit, search=search, full_text=full_text, title=title, variable=variable, geolocation=geolocation) 
 
     return entries
 

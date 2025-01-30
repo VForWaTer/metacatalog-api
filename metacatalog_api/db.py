@@ -1,14 +1,16 @@
 from typing import List
 from pathlib import Path
+import warnings
 
-from sqlmodel import Session, text
+from sqlmodel import Session, text, func
+from sqlmodel import select, exists, col, or_, and_
 from psycopg2.errors import UndefinedTable
 from sqlalchemy.exc import ProgrammingError
 from pydantic_geojson import FeatureCollectionModel
 from pydantic import BaseModel
 
 from metacatalog_api import models
-from sqlmodel import select, exists, col
+from metacatalog_api.extra import geocoder
 
 DB_VERSION = 4
 SQL_DIR = Path(__file__).parent / "sql"
@@ -71,9 +73,37 @@ def check_installed(session: Session, schema: str = 'public') -> bool:
         return False
     
 
-def get_entries(session: Session, limit: int = None, offset: int = None, variable: str | int = None, title: str = None) -> list[models.Metadata]:
-    # build the base query
-    sql = select(models.EntryTable)
+def get_entries(session: Session, limit: int = None, offset: int = None, variable: str | int = None, title: str = None, geolocation: str = None) -> list[models.Metadata]:
+    if geolocation is not None:
+        try:
+            geolocation = geocoder.geolocation_to_postgres_wkt(geolocation=geolocation, tolerance=0.5)
+        except Exception as e:
+            warnings.warn(f"Could not resolve geolocation to WKT, continue without geolocation filter: {geolocation}.")
+            geolocation = None
+
+    if geolocation is not None:
+        geolocation = func.st_setSRID(func.st_geomfromtext(geolocation), 4326)
+    
+        # build the base query
+        sql = (
+            select(models.EntryTable)
+            .join(models.DatasourceTable, isouter=True)
+            .join(models.SpatialScaleTable, isouter=True)
+            .where(
+                or_(
+                    and_(
+                        col(models.EntryTable.location).is_not(None), 
+                        func.st_within(models.EntryTable.location, geolocation)
+                    ),
+                    and_(
+                        col(models.SpatialScaleTable.extent).is_not(None), 
+                        func.st_intersects(models.SpatialScaleTable.extent, geolocation)
+                    )
+                )
+            )
+        )
+    else:
+        sql = select(models.EntryTable)
 
     # handle variable filter
     if isinstance(variable, int):
@@ -145,7 +175,7 @@ class SearchResult(BaseModel):
     weight: int
 
 
-def search_entries(session: Session, search: str, full_text: bool = True, limit: int = None, offset: int = None, variable: int | str = None) -> list[SearchResult]:
+def search_entries(session: Session, search: str, full_text: bool = True, limit: int = None, offset: int = None, variable: int | str = None, geolocation: str = None) -> list[SearchResult]:
     # build the limit and offset
     lim = f" LIMIT {limit} " if limit is not None else ""
     off = f" OFFSET {offset} " if offset is not None else ""
@@ -153,12 +183,22 @@ def search_entries(session: Session, search: str, full_text: bool = True, limit:
     params = {"lim": lim, "off": off}
     # handle variable filter
     if isinstance(variable, int):
-        filt = " WHERE entries.variable_id = :variable "
+        filt = " AND entries.variable_id = :variable "
         params["variable"] = variable
     elif isinstance(variable, str):
         variable = get_variables(session, name=variable)
-        filt = " WHERE entries.variable_id in (:variabe) "
+        filt = " AND entries.variable_id in (:variable) "
         params["variable"] = [v.id for v in variable]
+    
+    if geolocation is not None:
+        try:
+            geolocation = geocoder.geolocation_to_postgres_wkt(geolocation=geolocation, tolerance=0.5)
+        except Exception as e:
+            warnings.warn(f"Could not resolve geolocation to WKT, continue without geolocation filter: {geolocation}.")
+            geolocation = None
+    if geolocation is None:
+        geolocation = "POLYGON ((-90 -180, 90 -180, 90 180, -90 180, -90 -180))"
+    params["geolocation"] = geolocation
 
     # handle full text search
     if full_text:

@@ -70,11 +70,11 @@ def register_token(user: models.Author | None = None, valid_until: datetime | No
     print(f"Generated a new token. Save this token in a save space as it will not be displayed again:\n{new_key}\n")
 
 
-def entries(offset: int = 0, limit: int = None, ids: int | List[int] = None, full_text: bool = True, search: str = None, variable: str | int = None, title: str = None) -> list[models.Metadata]:
+def entries(offset: int = 0, limit: int = None, ids: int | List[int] = None, full_text: bool = True, search: str = None, variable: str | int = None, title: str = None, geolocation: str = None) -> list[models.Metadata]:
     # check if we filter or search
     with connect() as session:
         if search is not None:
-            search_results = db.search_entries(session, search, limit=limit, offset=offset, variable=variable, full_text=full_text)
+            search_results = db.search_entries(session, search, limit=limit, offset=offset, variable=variable, full_text=full_text, geolocation=geolocation)
 
             if len(search_results) == 0:
                 return []
@@ -86,7 +86,7 @@ def entries(offset: int = 0, limit: int = None, ids: int | List[int] = None, ful
         elif ids is not None:
             results = db.get_entries_by_id(session, ids, limit=limit, offset=offset)
         else:
-            results = db.get_entries(session, limit=limit, offset=offset, variable=variable, title=title)
+            results = db.get_entries(session, limit=limit, offset=offset, variable=variable, title=title, geolocation=geolocation)
 
     return results
 
