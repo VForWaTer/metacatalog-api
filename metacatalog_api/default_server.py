@@ -7,11 +7,12 @@ from metacatalog_api.server import app, server
 from metacatalog_api.apps.explorer.read import templates
 from metacatalog_api.apps.explorer import static_files
 from metacatalog_api.router.api.read import read_router as api_read_router
-from metacatalog_api.router.api.create import create_router as api_create_router, validate_api_key
+from metacatalog_api.router.api.create import create_router as api_create_router
 from metacatalog_api.router.api.upload import upload_router
 from metacatalog_api.apps.explorer.create import create_router as explorer_create
 from metacatalog_api.apps.explorer.read import explorer_router
 from metacatalog_api.apps.explorer.upload import upload_router as explorer_upload
+from metacatalog_api.router.api.security import validate_api_key
 
 # at first we add the cors middleware to allow everyone to reach the API
 app.add_middleware(
