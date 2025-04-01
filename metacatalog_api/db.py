@@ -32,7 +32,7 @@ def get_db_version(session: Session, schema: str = 'public') -> dict:
     except UndefinedTable:
         v = 0
     except ProgrammingError as e:
-        if 'relation "metacatalog_info"' in str(e):
+        if 'relation "{schema}.metacatalog_info" does not exist' in str(e):
             v = 0
         else:
             raise e
