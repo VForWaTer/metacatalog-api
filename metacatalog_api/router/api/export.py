@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 
-from metacatalog_api.core import core
+from metacatalog_api import core
 from metacatalog_api.server import server
 
 export_router = APIRouter()
