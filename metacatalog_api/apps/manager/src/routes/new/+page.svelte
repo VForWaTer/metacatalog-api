@@ -8,7 +8,7 @@
     </h1>
 
     <div class="mt-4">
-        <Accordion title="Main Metadata" open>
+        <Accordion title="Main Metadata" open color="gray">
             <p>Main Metadata</p>
         </Accordion>
 

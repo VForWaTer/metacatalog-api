@@ -1,11 +1,11 @@
 <script>
-    let { title, children, open = false, color='gray' } = $props();
+    let { title, children, open = false } = $props();
 </script>
 
 <div class="border border-gray-200 rounded-lg">
     <button 
         type="button" 
-        class="w-full flex justify-between bg-{color}-500 p-2 rounded cursor-pointer hover:bg-{color}-600" 
+        class="w-full flex justify-between bg-gray-500 p-2 rounded cursor-pointer hover:bg-gray-600" 
         onclick={() => open = !open}
     >
         <span class="text-white font-bold">{title}</span>
