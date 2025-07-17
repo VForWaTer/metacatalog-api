@@ -1,8 +1,11 @@
 import type { PageLoad } from './$types';
 import type { License, Variable, Author } from '$lib/models';
-import { buildApiUrl, devFetch, devLog } from '$lib/stores/settingsStore';
+import { buildApiUrl, devFetch, devLog, setSvelteKitFetch } from '$lib/stores/settingsStore';
 
 export const load: PageLoad = async ({ fetch }) => {
+    // Set the SvelteKit fetch function for devFetch to use
+    setSvelteKitFetch(fetch);
+    
     try {
         // Fetch licenses
         const licensesUrl = buildApiUrl('/licenses');
