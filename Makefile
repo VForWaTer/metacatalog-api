@@ -24,12 +24,12 @@ build-all: build-manager
 # Start all services (build + docker-compose)
 start: build-manager
 	@echo "Starting all services..."
-	docker-compose up --build
+	docker compose up --build
 
 # Stop all services
 stop:
 	@echo "Stopping all services..."
-	docker-compose down
+	docker compose down
 
 # Clean build artifacts
 clean:
@@ -43,6 +43,6 @@ clean:
 dev:
 	@echo "Starting development mode..."
 	@echo "Starting database..."
-	docker-compose up db -d
+	docker compose up -d
 	@echo "Database started. Starting manager in development mode..."
 	cd metacatalog_api/apps/manager && npm run dev 
