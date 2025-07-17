@@ -8,7 +8,7 @@ export const load: PageLoad = async ({ fetch }) => {
         const licensesUrl = buildApiUrl('/licenses');
         devLog.info('Fetching licenses from', licensesUrl);
         
-        const licensesResponse = await devFetch(licensesUrl);
+        const licensesResponse = await devFetch(licensesUrl, undefined, fetch);
         let licenses: License[] = [];
         
         if (licensesResponse.ok) {
@@ -22,7 +22,7 @@ export const load: PageLoad = async ({ fetch }) => {
         const variablesUrl = buildApiUrl('/variables');
         devLog.info('Fetching variables from', variablesUrl);
         
-        const variablesResponse = await devFetch(variablesUrl);
+        const variablesResponse = await devFetch(variablesUrl, undefined, fetch);
         let variables: Variable[] = [];
         
         if (variablesResponse.ok) {
@@ -36,7 +36,7 @@ export const load: PageLoad = async ({ fetch }) => {
         const authorsUrl = buildApiUrl('/authors');
         devLog.info('Fetching authors from', authorsUrl);
         
-        const authorsResponse = await devFetch(authorsUrl);
+        const authorsResponse = await devFetch(authorsUrl, undefined, fetch);
         let authors: Author[] = [];
         
         if (authorsResponse.ok) {
