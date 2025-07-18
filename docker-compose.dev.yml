@@ -10,26 +10,27 @@ services:
     ports:
       - 5433:5432
     volumes:
-      #- ../../KIT/projects/tool_images/tool_vforwater_loader/data/pg_data:/var/lib/postgresql/data
       - ./data/dev/pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "sh -c 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}'"]
       interval: 1s
       timeout: 1s
       retries: 5
-  
-  api:
+
+  app:
     build: .
     environment:
       METACATALOG_URI: postgresql://postgres:postgres@db:5432/metacatalog
       ENVIRONMENT: development
       METACATALOG_ADMIN_TOKEN: ${METACATALOG_ADMIN_TOKEN}
-    links:
-      - db
+      VITE_BACKEND_URL: http://localhost:8000
+      VITE_METACATALOG_ADMIN_TOKEN: ${METACATALOG_ADMIN_TOKEN}
+    ports:
+      - 8001:8000  # API
+      - 5173:5173  # Frontend dev server
+    volumes:
+      - ./metacatalog_api:/app/metacatalog_api
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - 8001:8000
-    volumes:
-      - ./metacatalog_api:/app/metacatalog_api
+    command: sh -c "python metacatalog_api/default_server.py --reload=True & cd metacatalog_api/apps/manager && npm run dev -- --host 0.0.0.0 & wait" 

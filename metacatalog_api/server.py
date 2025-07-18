@@ -8,12 +8,14 @@ import uvicorn
 from metacatalog_api import core
 from metacatalog_api import __version__
 from metacatalog_api.db import DB_VERSION
+from metacatalog_api import access_control
 
 
 class Server(BaseSettings):
     model_config = SettingsConfigDict(
         cli_parse_args=True, 
-        cli_prog_names="metacatalog-server"
+        cli_prog_names="metacatalog-server",
+        env_prefix="METACATALOG_"
     )
     host: str = "0.0.0.0"
     port: int = 8000
@@ -21,6 +23,10 @@ class Server(BaseSettings):
     reload: bool = False
     app_name: str = "explorer"
     autoupgrade: bool = False
+    environment: str = "development"
+    admin_token: str | None = None
+    create_admin_token: bool = False
+    validate_admin_token: str | None = None
 
     @property
     def uri_prefix(self):
@@ -76,13 +82,23 @@ async def lifespan(app: FastAPI):
                 else:
                     raise ValueError(f"Database version mismatch. Expected version {core.db.DB_VERSION}. Please run database migrations to update your schema.")
 
+    # Handle admin token setup
+    with core.connect() as session:
+        if access_control.is_development_mode(server):
+            logger.info("Development mode detected - setting up admin token...")
+            try:
+                admin_token = access_control.get_or_create_admin_token(session, server)
+                logger.info("Admin token setup completed")
+            except Exception as e:
+                logger.warning(f"Admin token setup failed: {e}")
+
     # now we yield the application
     yield
 
     # here we can app tear down code - i.e. a log message
 
 # build the base app
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan) 
 
 @app.get('/version')
 def get_version(request: Request):
