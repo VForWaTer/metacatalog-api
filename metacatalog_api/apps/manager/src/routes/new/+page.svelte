@@ -2,6 +2,8 @@
     import Accordion from "./Accordion.svelte";
     import MetadataForm from "./MetadataForm.svelte";
     import AuthorForm from "./AuthorForm.svelte";
+    import LocationForm from "./LocationForm.svelte";
+    import KeywordsForm from "./KeywordsForm.svelte";
     import DetailForm from "./DetailForm.svelte";
     import SaveButton from "$lib/components/SaveButton.svelte";
     import type { PageData } from './$types';
@@ -36,7 +38,14 @@
             <AuthorForm authors={data.authors} />
         </Accordion>
 
-        <Accordion title="Extra Metadata">
+        <Accordion title="Optional Metadata">
+            <div class="space-y-6">
+                <LocationForm />
+                <KeywordsForm />
+            </div>
+        </Accordion>
+
+        <Accordion title="Details">
             <DetailForm />
         </Accordion>
 
