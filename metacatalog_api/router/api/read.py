@@ -102,6 +102,27 @@ def get_variable(id: int):
         raise HTTPException(status_code=404, detail=str(e))
     return variable
 
+
+@read_router.get('/keywords')
+@read_router.get('/keywords.json')
+def get_keywords(search: str = None, thesaurus_id: int = None, offset: int = None, limit: int = None):
+    try:
+        keywords = core.keywords(search=search, thesaurus_id=thesaurus_id, offset=offset, limit=limit)
+        return keywords
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@read_router.get('/keywords/{id}')
+@read_router.get('/keywords/{id}.json')
+def get_keyword(id: int):
+    try:
+        keyword = core.keywords(id=id)
+        return keyword
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @read_router.get('/group-types')
 @read_router.get('/group-types.json')
 def get_group_types():

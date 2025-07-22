@@ -183,6 +183,16 @@ def variables(id: int = None, only_available: bool = False, offset: int = None, 
     return variables
 
 
+def keywords(id: int = None, search: str = None, thesaurus_id: int = None, offset: int = None, limit: int = None) -> List[models.Keyword]:
+    with connect() as session:
+        if id is not None:
+            keyword = db.get_keyword_by_id(session, id=id)
+            return keyword
+        else:
+            keywords = db.get_keywords(session, search=search, thesaurus_id=thesaurus_id, limit=limit, offset=offset)
+            return keywords
+
+
 def datatypes(id: int = None) -> List[models.DatasourceTypeBase]:
     # TODO: this may need some more parameters
     with connect() as session:

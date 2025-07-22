@@ -394,6 +394,45 @@ def get_datatypes(session: Session, id: int = None) -> list[models.DatasourceTyp
         return [models.DatasourceTypeBase.model_validate(type_) for type_ in types]
 
 
+def get_keywords(session: Session, search: str = None, thesaurus_id: int = None, limit: int = None, offset: int = None) -> list[models.Keyword]:
+    # build the base query
+    query = select(models.KeywordTable)
+    
+    # add search filter
+    if search is not None and search.strip():
+        search_term = f"%{search.strip()}%"
+        query = query.where(
+            or_(
+                models.KeywordTable.value.ilike(search_term),
+                models.KeywordTable.full_path.ilike(search_term)
+            )
+        )
+    
+    # add thesaurus filter
+    if thesaurus_id is not None:
+        query = query.where(models.KeywordTable.thesaurus_id == thesaurus_id)
+    
+    # add limit and offset
+    if offset is not None:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    
+    # execute the query
+    keywords = session.exec(query).all()
+    
+    return [models.Keyword.model_validate(keyword) for keyword in keywords]
+
+
+def get_keyword_by_id(session: Session, id: int) -> models.Keyword:
+    # get the keyword by id
+    keyword = session.get(models.KeywordTable, id)
+    if keyword is None:
+        raise ValueError(f"Keyword with id {id} not found")
+    
+    return models.Keyword.model_validate(keyword)
+
+
 def add_entry(session: Session, payload: models.EntryCreate, author_duplicates: bool = False) -> models.Metadata:
     # grab the keywords
     if payload.keywords is not None and len(payload.keywords) > 0:
