@@ -12,10 +12,10 @@ COPY LICENSE /app/LICENSE
 COPY setup.py /app/setup.py
 COPY MANIFEST.in /app/MANIFEST.in
 
-# Build the SvelteKit manager app
+
+# Install Node.js dependencies for the SvelteKit app (will be built at runtime)
 RUN cd /app/metacatalog_api/apps/manager && \
-    npm install && \
-    npm run build
+    npm install
 
 RUN pip install --upgrade pip && \
     #pip install poetry && \

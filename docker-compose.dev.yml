@@ -17,20 +17,33 @@ services:
       timeout: 1s
       retries: 5
 
-  app:
+  api:
     build: .
     environment:
       METACATALOG_URI: postgresql://postgres:postgres@db:5432/metacatalog
       ENVIRONMENT: development
       METACATALOG_ADMIN_TOKEN: ${METACATALOG_ADMIN_TOKEN}
-      VITE_BACKEND_URL: http://localhost:8000
-      VITE_METACATALOG_ADMIN_TOKEN: ${METACATALOG_ADMIN_TOKEN}
     ports:
       - 8001:8000  # API
-      - 5173:5173  # Frontend dev server
     volumes:
       - ./metacatalog_api:/app/metacatalog_api
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "python metacatalog_api/default_server.py --reload=True & cd metacatalog_api/apps/manager && npm run dev -- --host 0.0.0.0 & wait" 
+    command: python metacatalog_api/default_server.py --reload True
+
+
+  frontend:
+    build: .
+    environment:
+      VITE_BACKEND_URL: http://localhost:8001
+      VITE_METACATALOG_ADMIN_TOKEN: ${METACATALOG_ADMIN_TOKEN}
+      VITE_DEV: true
+    ports:
+      - 5173:5173  # Frontend dev server
+    volumes:
+      - ./metacatalog_api/apps/manager:/app/metacatalog_api/apps/manager
+    depends_on:
+      api:
+        condition: service_started
+    command: sh -c "cd /app/metacatalog_api/apps/manager && npm install && npm run dev -- --host 0.0.0.0" 
