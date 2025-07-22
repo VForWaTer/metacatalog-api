@@ -1,8 +1,14 @@
 import type { PageLoad } from './$types';
 import type { License, Variable, Author } from '$lib/models';
-import { buildApiUrl, devFetch, devLog } from '$lib/stores/settingsStore';
+import { buildApiUrl, createDevFetch, devLog } from '$lib/stores/settingsStore';
+
+// Disable SSR - this will run only on the client side
+export const ssr = false;
 
 export const load: PageLoad = async ({ fetch }) => {
+    // Create devFetch that uses Svelte's enhanced fetch function
+    const devFetch = createDevFetch(fetch);
+    
     try {
         // Fetch licenses
         const licensesUrl = buildApiUrl('/licenses');

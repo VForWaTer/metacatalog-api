@@ -9,6 +9,7 @@
     // Local state for collapsible sections
     let orcidSectionOpen = $state(true);
     let addAuthorSectionOpen = $state(false);
+    let existingAuthorSectionOpen = $state(true);
 
     // Local state for new author form
     let newAuthor = $state<AuthorCreate>({
@@ -33,6 +34,8 @@
                  (($metadataEntry.author as AuthorCreate).last_name || '').trim() ||
                  (($metadataEntry.author as AuthorCreate).organisation_name || '').trim() ||
                  (($metadataEntry.author as AuthorCreate).organisation_abbrev || '').trim());
+            
+            console.log('🔍 Manual author addition - hasMainAuthor:', hasMainAuthor, 'author:', $metadataEntry.author);
             
             if (hasMainAuthor) {
                 // Add as co-author
@@ -109,12 +112,55 @@
              (($metadataEntry.author as AuthorCreate).organisation_name || '').trim() ||
              (($metadataEntry.author as AuthorCreate).organisation_abbrev || '').trim());
         
+        console.log('🔍 ORCID author found - hasMainAuthor:', hasMainAuthor, 'author:', $metadataEntry.author);
+        
         if (hasMainAuthor) {
             // Add as co-author
             metadataActions.addCoAuthor({...author});
         } else {
             // Set as main author
             metadataActions.updateAuthor({...author});
+        }
+    }
+
+    // Handle selecting existing author from dropdown
+    function handleExistingAuthorSelect(event: Event) {
+        const target = event.target as HTMLSelectElement;
+        const authorId = parseInt(target.value);
+        
+        if (authorId) {
+            const selectedAuthor = authors.find((a: Author) => a.id === authorId);
+            if (selectedAuthor) {
+                // Convert Author to AuthorCreate format
+                const authorCreate: AuthorCreate = {
+                    first_name: selectedAuthor.first_name || '',
+                    last_name: selectedAuthor.last_name || '',
+                    is_organisation: selectedAuthor.is_organisation || false,
+                    organisation_name: selectedAuthor.organisation_name || '',
+                    organisation_abbrev: selectedAuthor.organisation_abbrev || '',
+                    affiliation: selectedAuthor.affiliation || ''
+                };
+                
+                // Check if we already have a main author (same logic as other functions)
+                const hasMainAuthor = $metadataEntry.author && 
+                    ((($metadataEntry.author as AuthorCreate).first_name || '').trim() || 
+                     (($metadataEntry.author as AuthorCreate).last_name || '').trim() ||
+                     (($metadataEntry.author as AuthorCreate).organisation_name || '').trim() ||
+                     (($metadataEntry.author as AuthorCreate).organisation_abbrev || '').trim());
+                
+                console.log('🔍 Existing author selection - hasMainAuthor:', hasMainAuthor, 'author:', $metadataEntry.author);
+                
+                if (hasMainAuthor) {
+                    // Add as co-author
+                    metadataActions.addCoAuthor(authorCreate);
+                } else {
+                    // Set as main author
+                    metadataActions.updateAuthor(authorCreate);
+                }
+                
+                // Reset dropdown
+                target.value = '';
+            }
         }
     }
 
@@ -167,6 +213,68 @@
         {#if orcidSectionOpen}
             <div class="mt-4">
                 <OrcidLookup on:authorFound={handleOrcidAuthorFound} />
+            </div>
+        {/if}
+    </div>
+
+    <!-- Select Existing Author -->
+    <div class="bg-gray-50 p-4 rounded-md">
+        <button
+            type="button"
+            onmousedown={() => existingAuthorSectionOpen = !existingAuthorSectionOpen}
+            class="flex items-center justify-between w-full text-left"
+        >
+            <h3 class="text-lg font-medium text-gray-900">Select Existing Author</h3>
+            <svg 
+                class="w-5 h-5 text-gray-500 transform transition-transform {existingAuthorSectionOpen ? 'rotate-180' : ''}" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+            >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+        
+        {#if existingAuthorSectionOpen}
+            <div class="mt-4">
+                <label for="existing-author" class="block text-sm font-medium text-gray-700 mb-2">
+                    Choose from existing authors
+                </label>
+                <select
+                    id="existing-author"
+                    onchange={handleExistingAuthorSelect}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                >
+                    <option value="">Select an author...</option>
+                    {#each authors.filter((author: Author) => !associatedAuthors.some(associated => {
+                        // Check by ID first (for existing authors from database)
+                        if ('id' in associated && associated.id && associated.id === author.id) {
+                            return true;
+                        }
+                        // Check by name/organization (for newly added authors)
+                        if (author.is_organisation) {
+                            return (author.organisation_name || '').trim() === (associated.organisation_name || '').trim() &&
+                                   (author.organisation_abbrev || '').trim() === (associated.organisation_abbrev || '').trim();
+                        } else {
+                            return (author.first_name || '').trim() === (associated.first_name || '').trim() &&
+                                   (author.last_name || '').trim() === (associated.last_name || '').trim();
+                        }
+                    })) as author}
+                        <option value={author.id}>
+                            {#if author.is_organisation}
+                                {author.organisation_name || author.first_name || author.last_name}
+                                {#if author.organisation_abbrev}
+                                    ({author.organisation_abbrev})
+                                {/if}
+                            {:else}
+                                {author.first_name} {author.last_name}
+                            {/if}
+                            {#if author.affiliation}
+                                - {author.affiliation}
+                            {/if}
+                        </option>
+                    {/each}
+                </select>
             </div>
         {/if}
     </div>
@@ -397,14 +505,4 @@
         {/if}
     </div>
 
-    <!-- Available Authors (for reference) -->
-    <div>
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Available Authors in Database</h3>
-        
-        {#if authors.length > 0}
-            <pre class="bg-gray-100 p-4 rounded-md text-sm overflow-auto max-h-96">{JSON.stringify(authors, null, 2)}</pre>
-        {:else}
-            <p class="text-gray-500 italic">No authors found in the database.</p>
-        {/if}
-    </div>
 </div> 
