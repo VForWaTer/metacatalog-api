@@ -9,7 +9,7 @@
     // Local state for collapsible sections
     let orcidSectionOpen = $state(true);
     let addAuthorSectionOpen = $state(false);
-    let existingAuthorSectionOpen = $state(true);
+    let existingAuthorSectionOpen = $state(false);
 
     // Local state for new author form
     let newAuthor = $state<AuthorCreate>({
@@ -191,7 +191,13 @@
     })());
 </script>
 
-<div class="space-y-6">
+<div class="space-y-4">
+    <!-- Author Section Header -->
+    <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Author Information</h3>
+        <hr class="border-gray-300 mb-4">
+    </div>
+
     <!-- ORCID Lookup -->
     <div class="bg-gray-50 p-4 rounded-md">
         <button

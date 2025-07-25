@@ -5,9 +5,10 @@
     import LocationForm from "./LocationForm.svelte";
     import KeywordsForm from "./KeywordsForm.svelte";
     import DetailForm from "./DetailForm.svelte";
+    import DataFileUpload from "./DataFileUpload.svelte";
     import SaveButton from "$lib/components/SaveButton.svelte";
     import type { PageData } from './$types';
-    import { metadataEntry, dirtySections, isFormValid } from '$lib/stores/metadataStore';
+    import { metadataEntry, dirtySections, isFormValid, metadataActions } from '$lib/stores/metadataStore';
     import { settings } from '$lib/stores/settingsStore';
     import { apiKey, apiKeyStatus, validateApiKey, isLocalhost, getDefaultAdminKey } from '$lib/stores/apiKeyStore';
     
@@ -30,23 +31,142 @@
     </h1>
 
     <div class="mt-4">
-        <Accordion title="Main Metadata" open>
-            <MetadataForm licenses={data.licenses} variables={data.variables} />
-        </Accordion>
+        <Accordion title="Core Metadata" open>
+            <div class="space-y-6">
+                <!-- Mandatory fields from MetadataForm -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                        Title <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value={$metadataEntry.title}
+                        oninput={(e) => metadataActions.updateBasicInfo({ title: (e.target as HTMLInputElement).value })}
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Enter the title of your dataset"
+                        required
+                    />
+                </div>
 
-        <Accordion title="Authors">
-            <AuthorForm authors={data.authors} />
+                <div>
+                    <label for="abstract" class="block text-sm font-medium text-gray-700 mb-2">
+                        Abstract <span class="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        id="abstract"
+                        name="abstract"
+                        value={$metadataEntry.abstract}
+                        oninput={(e) => metadataActions.updateBasicInfo({ abstract: (e.target as HTMLTextAreaElement).value })}
+                        rows="4"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Provide a detailed description of your dataset"
+                        required
+                    ></textarea>
+                </div>
+
+                <div>
+                    <label for="license" class="block text-sm font-medium text-gray-700 mb-2">
+                        License <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        id="license"
+                        name="license"
+                        value={$metadataEntry.license}
+                        onchange={(e) => metadataActions.updateLicense(parseInt((e.target as HTMLSelectElement).value))}
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        required
+                    >
+                        <option value="">Select a license</option>
+                        {#each data.licenses as license}
+                            <option value={license.id}>{license.short_title} - {license.title}</option>
+                        {/each}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="variable" class="block text-sm font-medium text-gray-700 mb-2">
+                        Variable <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        id="variable"
+                        name="variable"
+                        value={$metadataEntry.variable}
+                        onchange={(e) => metadataActions.updateVariable(parseInt((e.target as HTMLSelectElement).value))}
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        required
+                    >
+                        <option value="">Select a variable</option>
+                        {#each data.variables as variable}
+                            <option value={variable.id}>{variable.name} ({variable.symbol})</option>
+                        {/each}
+                    </select>
+                </div>
+
+                <!-- Author section -->
+                <AuthorForm authors={data.authors} />
+            </div>
         </Accordion>
 
         <Accordion title="Optional Metadata">
             <div class="space-y-6">
-                <LocationForm />
                 <KeywordsForm />
+                <LocationForm />
+                
+                <hr class="border-gray-300">
+                
+                <!-- Optional fields from MetadataForm -->
+                <div>
+                    <label for="external_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        External ID
+                    </label>
+                    <input
+                        type="text"
+                        id="external_id"
+                        name="external_id"
+                        value={$metadataEntry.external_id || ''}
+                        oninput={(e) => metadataActions.updateBasicInfo({ external_id: (e.target as HTMLInputElement).value })}
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="External identifier (optional)"
+                    />
+                </div>
+
+                <div>
+                    <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">
+                        Comment
+                    </label>
+                    <textarea
+                        id="comment"
+                        name="comment"
+                        value={$metadataEntry.comment || ''}
+                        oninput={(e) => metadataActions.updateBasicInfo({ comment: (e.target as HTMLTextAreaElement).value })}
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Additional comments or notes"
+                    ></textarea>
+                </div>
+
+                <div class="flex items-center">
+                    <input
+                        type="checkbox"
+                        id="embargo"
+                        name="embargo"
+                        checked={$metadataEntry.embargo}
+                        onchange={(e) => metadataActions.updateBasicInfo({ embargo: (e.target as HTMLInputElement).checked })}
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label for="embargo" class="ml-2 text-sm text-gray-700">
+                        Apply embargo (restrict access for 2 years)
+                    </label>
+                </div>
+
+                <DetailForm />
             </div>
         </Accordion>
 
-        <Accordion title="Details">
-            <DetailForm />
+        <Accordion title="Data/File">
+            <DataFileUpload />
         </Accordion>
 
         <SaveButton />

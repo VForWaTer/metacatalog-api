@@ -103,6 +103,16 @@ def get_variable(id: int):
     return variable
 
 
+@read_router.get('/datasource-types')
+@read_router.get('/datasource-types.json')
+def get_datasource_types():
+    try:
+        types = core.datatypes()
+        return types
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @read_router.get('/keywords')
 @read_router.get('/keywords.json')
 def get_keywords(search: str = None, thesaurus_id: int = None, offset: int = None, limit: int = None):
