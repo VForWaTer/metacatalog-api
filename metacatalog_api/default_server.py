@@ -15,6 +15,7 @@ from metacatalog_api.apps.explorer.create import create_router as explorer_creat
 from metacatalog_api.apps.explorer.read import explorer_router
 from metacatalog_api.apps.explorer.upload import upload_router as explorer_upload
 from metacatalog_api.router.api.data import data_router
+from metacatalog_api.router.api.preview import preview_router
 from metacatalog_api.router.api.export import export_router as api_export_router
 from metacatalog_api.router.api.security import validate_api_key, router as security_router
 
@@ -44,6 +45,7 @@ app.include_router(api_export_router)
 app.include_router(api_create_router, dependencies=[Depends(validate_api_key)])
 app.include_router(upload_router, dependencies=[Depends(validate_api_key)])
 app.include_router(data_router, dependencies=[Depends(validate_api_key)])
+app.include_router(preview_router, prefix="/preview", dependencies=[Depends(validate_api_key)])
 app.include_router(security_router)
 
 # add the default explorer application (the HTML)

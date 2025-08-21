@@ -14,6 +14,8 @@
     let uploadError = $state<string | null>(null);
     let showManualForm = $state(false);
     let manualPath = $state('');
+    let previewData = $state<any>(null);
+    let isGettingPreview = $state(false);
     
     // Datasource configuration fields
     let datasourceTypes = $state<DatasourceTypeBase[]>([]);
@@ -94,7 +96,7 @@
 
             uploadResult = await response.json();
             
-            // Create datasource from upload
+            // Create basic datasource from upload
             metadataActions.createDatasourceFromUpload(
                 uploadResult.file_hash,
                 uploadResult.filename,

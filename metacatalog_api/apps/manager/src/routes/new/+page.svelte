@@ -1,6 +1,5 @@
 <script lang="ts">
     import Accordion from "./Accordion.svelte";
-    import MetadataForm from "./MetadataForm.svelte";
     import AuthorForm from "./AuthorForm.svelte";
     import LocationForm from "./LocationForm.svelte";
     import KeywordsForm from "./KeywordsForm.svelte";
@@ -10,7 +9,7 @@
     import type { PageData } from './$types';
     import { metadataEntry, dirtySections, isFormValid, metadataActions } from '$lib/stores/metadataStore';
     import { settings } from '$lib/stores/settingsStore';
-    import { apiKey, apiKeyStatus, validateApiKey, isLocalhost, getDefaultAdminKey } from '$lib/stores/apiKeyStore';
+    import { apiKey, apiKeyStatus, validateApiKey, isLocalhost } from '$lib/stores/apiKeyStore';
     
     let { data } = $props<{ data: PageData }>();
 
