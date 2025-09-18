@@ -10,6 +10,7 @@
     import { metadataEntry, dirtySections, isFormValid, metadataActions } from '$lib/stores/metadataStore';
     import { settings } from '$lib/stores/settingsStore';
     import { apiKey, apiKeyStatus, validateApiKey, isLocalhost } from '$lib/stores/apiKeyStore';
+    import { appPath } from '$lib/utils';
     
     let { data } = $props<{ data: PageData }>();
 
@@ -25,6 +26,16 @@
 </script>
 
 <div class="w-9/10 mx-auto bg-white rounded-lg p-4">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href={appPath('')} class="inline-flex items-center text-blue-600 hover:text-blue-800">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Home
+        </a>
+    </div>
+
     <h1 class="text-2xl font-bold">
         Create new Metadata Entry
     </h1>
