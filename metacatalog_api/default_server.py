@@ -29,14 +29,13 @@ app.add_middleware(
 
 # the main page is defined here
 # this can easily be changed to a different entrypoint
-# @app.get('/')
-# def index(request: Request):
-#     """
-#     Main page for the HTML Metacatalog Explorer.
-#     This example app includes the explorer read and create routes
-#     which are powered by the api route
-#     """
-#     return templates.TemplateResponse(request=request, name="index.html", context={"path": server.app_prefix, "root_path": server.uri_prefix})
+@app.get('/')
+def index(request: Request):
+    """
+    Main page - redirect to the manager application
+    """
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/manager", status_code=302)
 
 
 # add all api routes - currently this is only splitted into read and create
