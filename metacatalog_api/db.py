@@ -196,9 +196,12 @@ def search_entries(session: Session, search: str, full_text: bool = True, limit:
         except Exception as e:
             warnings.warn(f"Could not resolve geolocation to WKT, continue without geolocation filter: {geolocation}.")
             geolocation = None
+    # Set geolocation filter flag - only apply geolocation filtering if user specified a boundary
+    geolocation_filter = geolocation is not None
     if geolocation is None:
         geolocation = "POLYGON ((-90 -180, 90 -180, 90 180, -90 180, -90 -180))"
     params["geolocation"] = geolocation
+    params["geolocation_filter"] = geolocation_filter
 
     # handle full text search
     if full_text:
@@ -207,7 +210,7 @@ def search_entries(session: Session, search: str, full_text: bool = True, limit:
         base_query = "ftl_search_entries.sql"
     else:
         base_query = "search_entries.sql"
-        params["prompt"] = search
+        params["prompt"] = f"%{search}%"
     # get the sql for the query
     sql = load_sql(base_query).format(limit=lim, offset=off, filter=filt)
     #sql = load_sql(base_query)
