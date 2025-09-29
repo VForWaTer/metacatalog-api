@@ -2,7 +2,7 @@ from typing import Optional, Annotated, Any
 from datetime import timedelta
 import json
 
-from pydantic import field_validator
+from pydantic import field_validator, field_serializer
 from pydantic_geojson import PointModel, PolygonModel
 from sqlmodel import Field, SQLModel, Column, Relationship
 from sqlmodel import JSON, ARRAY, String, Text
@@ -47,6 +47,14 @@ class PersonBase(SQLModel):
     organisation_abbrev: str | None = None
     affiliation: str | None = None
     attribution: str | None = None
+    
+    @field_validator('uuid', mode='before', check_fields=False)
+    @classmethod
+    def validate_uuid(cls, v):
+        if isinstance(v, str):
+            from uuid import UUID
+            return UUID(v)
+        return v
 
 class PersonTable(PersonBase, table=True):
     __tablename__ = 'persons'
@@ -93,6 +101,21 @@ class ThesaurusBase(SQLModel):
     organisation: str = Field(nullable=False)
     description: str | None = None
     url: HttpUrl = Field(sa_column=Column(Text, nullable=False))
+    
+    @field_validator('uuid', mode='before')
+    @classmethod
+    def validate_uuid(cls, v):
+        if isinstance(v, str):
+            from uuid import UUID
+            return UUID(v)
+        return v
+    
+    @field_validator('url', mode='before')
+    @classmethod
+    def validate_url(cls, v):
+        if isinstance(v, str):
+            return v
+        return v
 
 class ThesaurusTable(ThesaurusBase, table=True):
     __tablename__ = 'thesaurus'
@@ -113,6 +136,14 @@ class KeywordBase(SQLModel):
     parent_id: int | None = Field(foreign_key='keywords.id')
     value: str = Field(nullable=False)
     full_path: str | None = None
+    
+    @field_validator('uuid', mode='before', check_fields=False)
+    @classmethod
+    def validate_uuid(cls, v):
+        if isinstance(v, str):
+            from uuid import UUID
+            return UUID(v)
+        return v
 
 class KeywordTable(KeywordBase, table=True):
     __tablename__ = 'keywords'
@@ -325,6 +356,14 @@ class NMGroupsEntries(SQLModel, table=True):
 class EntryGroupTypeBase(SQLModel):
     name: str
     description: str
+    
+    @field_validator('uuid', mode='before', check_fields=False)
+    @classmethod
+    def validate_uuid(cls, v):
+        if isinstance(v, str):
+            from uuid import UUID
+            return UUID(v)
+        return v
 
 class EntryGroupTypeTable(EntryGroupTypeBase, table=True):
         __tablename__ = "entrygroup_types"
@@ -340,6 +379,14 @@ class EntryGroupBase(SQLModel):
     description: str | None = None
     publication: datetime | None = Field(default_factory=datetime.now)
     lastUpdate: datetime | None = Field(default_factory=datetime.now)
+    
+    @field_validator('uuid', mode='before', check_fields=False)
+    @classmethod
+    def validate_uuid(cls, v):
+        if isinstance(v, str):
+            from uuid import UUID
+            return UUID(v)
+        return v
 
 class EntryGroupTable(EntryGroupBase, table=True):
     __tablename__ = "entrygroups"
@@ -376,6 +423,14 @@ class EntryBase(SQLModel):
     embargo_end: datetime | None = None
     publication: datetime | None = None
     lastUpdate: datetime | None = None
+    
+    @field_validator('uuid', mode='before', check_fields=False)
+    @classmethod
+    def validate_uuid(cls, v):
+        if isinstance(v, str):
+            from uuid import UUID
+            return UUID(v)
+        return v
     
     @field_validator('location', mode='before')
     def validate_location(cls, v, info):
