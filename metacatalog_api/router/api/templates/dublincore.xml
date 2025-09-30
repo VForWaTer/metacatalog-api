@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xmlns:dc="http://purl.org/dc/elements/1.1/" 
+          xmlns:dcterms="http://purl.org/dc/terms/" 
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://purl.org/dc/elements/1.1/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd">
+    
+    <!-- Basic Dublin Core Elements -->
+    <dc:title>{{ entry.title }}</dc:title>
+    <dc:description>{{ entry.abstract }}</dc:description>
+    
+    {% if entry.author %}
+        {% if entry.author.is_organisation %}
+            <dc:creator>{{ entry.author.organisation_name or 'Organisation' }}{% if entry.author.organisation_abbrev %} ({{ entry.author.organisation_abbrev }}){% endif %}</dc:creator>
+        {% else %}
+            <dc:creator>{{ entry.author.first_name }} {{ entry.author.last_name }}</dc:creator>
+        {% endif %}
+    {% endif %}
+    
+    {% for coAuthor in entry.coAuthors %}
+        {% if coAuthor.is_organisation %}
+            <dc:contributor>{{ coAuthor.organisation_name or 'Organisation' }}{% if coAuthor.organisation_abbrev %} ({{ coAuthor.organisation_abbrev }}){% endif %}</dc:contributor>
+        {% else %}
+            <dc:contributor>{{ coAuthor.first_name }} {{ coAuthor.last_name }}</dc:contributor>
+        {% endif %}
+    {% endfor %}
+    
+    {% if entry.publication %}
+        <dc:date>{{ entry.publication }}</dc:date>
+    {% endif %}
+    
+    {% if entry.lastUpdate %}
+        <dc:date>{{ entry.lastUpdate }}</dc:date>
+    {% endif %}
+    
+    {% if entry.keywords %}
+        {% for keyword in entry.keywords %}
+            <dc:subject>{{ keyword.value }}</dc:subject>
+        {% endfor %}
+    {% endif %}
+    
+    {% if entry.variable %}
+        <dc:subject>{{ entry.variable.name }} ({{ entry.variable.symbol }})</dc:subject>
+    {% endif %}
+    
+    {% if entry.license %}
+        <dc:rights>{{ entry.license.title }}</dc:rights>
+    {% endif %}
+    
+    {% if entry.external_id %}
+        <dc:identifier>{{ entry.external_id }}</dc:identifier>
+    {% endif %}
+    
+    <dc:identifier>{{ entry.uuid }}</dc:identifier>
+    
+    <!-- Dublin Core Terms -->
+    {% if entry.location %}
+        <dcterms:spatial>{{ entry.location.coordinates[1] }}, {{ entry.location.coordinates[0] }}</dcterms:spatial>
+    {% endif %}
+    
+    {% if entry.datasource and entry.datasource.temporal_scale %}
+        <dcterms:temporal>{{ entry.datasource.temporal_scale.observation_start }} to {{ entry.datasource.temporal_scale.observation_end }}</dcterms:temporal>
+    {% endif %}
+    
+    {% if entry.datasource and entry.datasource.spatial_scale %}
+        <dcterms:spatial>{{ entry.datasource.spatial_scale.extent.type }}</dcterms:spatial>
+    {% endif %}
+    
+    <dcterms:type>Dataset</dcterms:type>
+    
+    {% if entry.embargo %}
+        <dcterms:accessRights>Restricted</dcterms:accessRights>
+    {% else %}
+        <dcterms:accessRights>Open</dcterms:accessRights>
+    {% endif %}
+    
+    {% if entry.citation %}
+        <dcterms:bibliographicCitation>{{ entry.citation }}</dcterms:bibliographicCitation>
+    {% endif %}
+    
+    {% if entry.comment %}
+        <dcterms:abstract>{{ entry.comment }}</dcterms:abstract>
+    {% endif %}
+    
+</metadata>

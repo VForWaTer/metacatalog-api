@@ -192,8 +192,19 @@ def get_export_formats(request: Request):
             path_parts = route.path.split('/')
             if len(path_parts) >= 4 and path_parts[1] == 'export':
                 format_name = path_parts[3]  # Gets 'xml', 'json', 'iso19115', etc.
+                
+                # Extract display name from docstring
+                display_name = format_name.upper()  # Default fallback
+                if hasattr(route, 'endpoint') and hasattr(route.endpoint, '__doc__') and route.endpoint.__doc__:
+                    docstring = route.endpoint.__doc__.strip()
+                    # Extract first line of docstring as display name
+                    first_line = docstring.split('\n')[0].strip()
+                    if first_line and not first_line.startswith('Export entry'):
+                        display_name = first_line
+                
                 export_routes.append({
                     'format': format_name,
+                    'display_name': display_name,
                     'path': route.path,
                     'methods': list(route.methods) if hasattr(route, 'methods') else ['GET']
                 })

@@ -1,0 +1,112 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "{{ entry.title }}",
+  "description": "{{ entry.abstract }}",
+  {% if entry.author %}
+  "creator": {
+    "@type": "{% if entry.author.is_organisation %}Organization{% else %}Person{% endif %}",
+    {% if entry.author.is_organisation %}
+    "name": "{{ entry.author.organisation_name or 'Organisation' }}{% if entry.author.organisation_abbrev %} ({{ entry.author.organisation_abbrev }}){% endif %}"
+    {% else %}
+    "givenName": "{{ entry.author.first_name }}",
+    "familyName": "{{ entry.author.last_name }}"
+    {% endif %}
+    {% if entry.author.affiliation %},
+    "affiliation": "{{ entry.author.affiliation }}"{% endif %}
+  },
+  {% endif %}
+  {% if entry.coAuthors and entry.coAuthors|length > 0 %}
+  "contributor": [
+    {% for coAuthor in entry.coAuthors %}
+    {
+      "@type": "{% if coAuthor.is_organisation %}Organization{% else %}Person{% endif %}",
+      {% if coAuthor.is_organisation %}
+      "name": "{{ coAuthor.organisation_name or 'Organisation' }}{% if coAuthor.organisation_abbrev %} ({{ coAuthor.organisation_abbrev }}){% endif %}"
+      {% else %}
+      "givenName": "{{ coAuthor.first_name }}",
+      "familyName": "{{ coAuthor.last_name }}"
+      {% endif %}
+      {% if coAuthor.affiliation %},
+      "affiliation": "{{ coAuthor.affiliation }}"{% endif %}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  {% endif %}
+  {% if entry.publication %}
+  "datePublished": "{{ entry.publication }}",
+  {% endif %}
+  {% if entry.lastUpdate %}
+  "dateModified": "{{ entry.lastUpdate }}",
+  {% endif %}
+  {% if entry.keywords and entry.keywords|length > 0 %}
+  "keywords": [
+    {% for keyword in entry.keywords %}
+    "{{ keyword.value }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  {% endif %}
+  {% if entry.variable %}
+  "variableMeasured": {
+    "@type": "PropertyValue",
+    "name": "{{ entry.variable.name }}",
+    "value": "{{ entry.variable.symbol }}"
+    {% if entry.variable.unit %},
+    "unitText": "{{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }})"{% endif %}
+  },
+  {% endif %}
+  {% if entry.license %}
+  "license": "{{ entry.license.link or entry.license.title }}",
+  {% endif %}
+  {% if entry.external_id %}
+  "identifier": "{{ entry.external_id }}",
+  {% endif %}
+  "url": "{{ entry.uuid }}",
+  {% if entry.location %}
+  "spatialCoverage": {
+    "@type": "Place",
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": {{ entry.location.coordinates[1] }},
+      "longitude": {{ entry.location.coordinates[0] }}
+    }
+  },
+  {% endif %}
+  {% if entry.datasource and entry.datasource.temporal_scale %}
+  "temporalCoverage": "{{ entry.datasource.temporal_scale.observation_start }}/{{ entry.datasource.temporal_scale.observation_end }}",
+  {% endif %}
+  {% if entry.datasource and entry.datasource.spatial_scale %}
+  "spatialCoverage": {
+    "@type": "Place",
+    "geo": {
+      "@type": "GeoShape",
+      "polygon": "{{ entry.datasource.spatial_scale.extent.coordinates[0] | join(' ') }}"
+    }
+  },
+  {% endif %}
+  "distribution": {
+    "@type": "DataDownload",
+    {% if entry.datasource %}
+    "contentUrl": "{{ entry.datasource.path }}",
+    "encodingFormat": "{{ entry.datasource.type.title if entry.datasource.type else 'Unknown' }}"
+    {% else %}
+    "contentUrl": "Not available",
+    "encodingFormat": "Unknown"
+    {% endif %}
+  },
+  {% if entry.embargo %}
+  "accessMode": "restricted",
+  "accessModeSufficient": "restricted"
+  {% else %}
+  "accessMode": "open",
+  "accessModeSufficient": "open"
+  {% endif %}
+  {% if entry.citation %},
+  "citation": "{{ entry.citation }}"{% endif %}
+  {% if entry.comment %},
+  "additionalProperty": {
+    "@type": "PropertyValue",
+    "name": "Comment",
+    "value": "{{ entry.comment }}"
+  }{% endif %}
+}
