@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.exceptions import HTTPException
 from pydantic_geojson import FeatureCollectionModel
 
@@ -176,3 +176,26 @@ def get_group(group_id) -> models.EntryGroupWithMetadata:
         raise HTTPException(status_code=404, detail=f"Group of id {group_id} was not found.")
 
     return group
+
+
+@read_router.get('/export-formats')
+def get_export_formats(request: Request):
+    """
+    Get all available export formats by scanning FastAPI routes
+    """
+    app = request.app
+    
+    export_routes = []
+    for route in app.routes:
+        if hasattr(route, 'path') and route.path.startswith('/export/'):
+            # Extract format from path like /export/{entry_id}/xml
+            path_parts = route.path.split('/')
+            if len(path_parts) >= 4 and path_parts[1] == 'export':
+                format_name = path_parts[3]  # Gets 'xml', 'json', 'iso19115', etc.
+                export_routes.append({
+                    'format': format_name,
+                    'path': route.path,
+                    'methods': list(route.methods) if hasattr(route, 'methods') else ['GET']
+                })
+    
+    return {"export_formats": export_routes}

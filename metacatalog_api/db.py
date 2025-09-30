@@ -205,8 +205,15 @@ def search_entries(session: Session, search: str, full_text: bool = True, limit:
 
     # handle full text search
     if full_text:
-        search = '&'.join(search.split(' '))
-        params["prompt"] = search
+        # Add :* for prefix matching to each word
+        words = search.split(' ')
+        if len(words) == 1:
+            # Single word - add :* for prefix matching
+            search_with_prefix = f"{words[0]}:*"
+        else:
+            # Multiple words - join with & and add :* to each
+            search_with_prefix = '&'.join([f"{word}:*" for word in words])
+        params["prompt"] = search_with_prefix
         base_query = "ftl_search_entries.sql"
     else:
         base_query = "search_entries.sql"
