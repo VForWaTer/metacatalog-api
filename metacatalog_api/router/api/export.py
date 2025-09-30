@@ -81,3 +81,41 @@ def export_schemaorg(entry_id: int, request: Request):
         context={"entry": entries[0]}, 
         media_type='application/ld+json'
     )
+
+
+@export_router.get('/export/{entry_id}/rdf')
+def export_rdf(entry_id: int, request: Request):
+    """
+    RDF/XML
+    Export entry as RDF/XML format using hybrid vocabulary approach
+    """
+    entries = core.entries(ids=entry_id)
+    
+    if len(entries) == 0:
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
+    
+    return templates.TemplateResponse(
+        request=request, 
+        name="rdf.xml", 
+        context={"entry": entries[0]}, 
+        media_type='application/xml'
+    )
+
+
+@export_router.get('/export/{entry_id}/datacite')
+def export_datacite(entry_id: int, request: Request):
+    """
+    DataCite
+    Export entry as DataCite XML format for research repositories like Zenodo
+    """
+    entries = core.entries(ids=entry_id)
+    
+    if len(entries) == 0:
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
+    
+    return templates.TemplateResponse(
+        request=request, 
+        name="datacite.xml", 
+        context={"entry": entries[0]}, 
+        media_type='application/xml'
+    )

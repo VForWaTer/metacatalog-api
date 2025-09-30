@@ -2,6 +2,8 @@
     import { isFormValid, submissionState, submissionError, cleanEntry, dirtySections } from '$lib/stores/metadataStore';
     import { buildApiUrl, devFetch } from '$lib/stores/settingsStore';
     import { apiKey, isLocalhost, getDefaultAdminKey } from '$lib/stores/apiKeyStore';
+    import { goto } from '$app/navigation';
+    import { appPath } from '$lib/utils';
 
     async function saveMetadata() {
         if (!$isFormValid) return;
@@ -47,6 +49,11 @@
             
             // Clear dirty sections since we've saved
             dirtySections.set(new Set());
+            
+            // Redirect to the newly created entry's detail page
+            if (result && result.id) {
+                goto(appPath(`datasets/${result.id}`));
+            }
             
         } catch (error) {
             console.error('Error saving metadata:', error);

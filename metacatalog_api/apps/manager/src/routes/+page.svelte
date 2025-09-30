@@ -35,10 +35,10 @@
 				<p class="text-gray-600">Add new metadata entries with a guided form.</p>
 			</a>
 			
-			<a href={externalPath('/explorer')} class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
-				<div class="text-3xl mb-4">🔍</div>
-				<h3 class="text-lg font-semibold text-gray-900 mb-2">Classic Explorer</h3>
-				<p class="text-gray-600">Access the traditional HTML-based explorer interface.</p>
+			<a href={appPath('extend')} class="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200">
+				<div class="text-3xl mb-4">🔧</div>
+				<h3 class="text-lg font-semibold text-gray-900 mb-2">Extend MetaCatalog</h3>
+				<p class="text-gray-600">Learn how to add custom export formats and extend functionality.</p>
 			</a>
 		</div>
 	</section>

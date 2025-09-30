@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:dcterms="http://purl.org/dc/terms/"
+         xmlns:foaf="http://xmlns.com/foaf/0.1/"
+         xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"
+         xmlns:qudt="http://qudt.org/schema/qudt/"
+         xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+         xmlns:metacatalog="http://metacatalog.org/schema/">
+
+  <rdf:Description rdf:about="urn:uuid:{{ entry.uuid }}">
+    <rdf:type rdf:resource="http://purl.org/dc/dcmitype/Dataset"/>
+    
+    <!-- Basic Dublin Core Properties -->
+    <dc:title>{{ entry.title }}</dc:title>
+    <dc:description>{{ entry.abstract }}</dc:description>
+    
+    {% if entry.author %}
+    <dc:creator>
+      <rdf:Description>
+        <rdf:type rdf:resource="http://xmlns.com/foaf/0.1/{% if entry.author.is_organisation %}Organization{% else %}Person{% endif %}"/>
+        {% if entry.author.is_organisation %}
+        <foaf:name>{{ entry.author.organisation_name or 'Organisation' }}{% if entry.author.organisation_abbrev %} ({{ entry.author.organisation_abbrev }}){% endif %}</foaf:name>
+        {% else %}
+        <foaf:givenName>{{ entry.author.first_name }}</foaf:givenName>
+        <foaf:familyName>{{ entry.author.last_name }}</foaf:familyName>
+        {% endif %}
+        {% if entry.author.affiliation %}
+        <foaf:affiliation>{{ entry.author.affiliation }}</foaf:affiliation>
+        {% endif %}
+      </rdf:Description>
+    </dc:creator>
+    {% endif %}
+    
+    {% for coAuthor in entry.coAuthors %}
+    <dc:contributor>
+      <rdf:Description>
+        <rdf:type rdf:resource="http://xmlns.com/foaf/0.1/{% if coAuthor.is_organisation %}Organization{% else %}Person{% endif %}"/>
+        {% if coAuthor.is_organisation %}
+        <foaf:name>{{ coAuthor.organisation_name or 'Organisation' }}{% if coAuthor.organisation_abbrev %} ({{ coAuthor.organisation_abbrev }}){% endif %}</foaf:name>
+        {% else %}
+        <foaf:givenName>{{ coAuthor.first_name }}</foaf:givenName>
+        <foaf:familyName>{{ coAuthor.last_name }}</foaf:familyName>
+        {% endif %}
+        {% if coAuthor.affiliation %}
+        <foaf:affiliation>{{ coAuthor.affiliation }}</foaf:affiliation>
+        {% endif %}
+      </rdf:Description>
+    </dc:contributor>
+    {% endfor %}
+    
+    {% if entry.publication %}
+    <dc:date>{{ entry.publication }}</dc:date>
+    {% endif %}
+    
+    {% if entry.lastUpdate %}
+    <dcterms:modified>{{ entry.lastUpdate }}</dcterms:modified>
+    {% endif %}
+    
+    {% if entry.keywords %}
+    {% for keyword in entry.keywords %}
+    <dc:subject>
+      <rdf:Description>
+        <skos:prefLabel>{{ keyword.value }}</skos:prefLabel>
+        {% if keyword.thesaurus %}
+        <skos:inScheme rdf:resource="{{ keyword.thesaurus.url }}"/>
+        {% endif %}
+      </rdf:Description>
+    </dc:subject>
+    {% endfor %}
+    {% endif %}
+    
+    {% if entry.license %}
+    <dc:rights>{{ entry.license.title }}</dc:rights>
+    <dcterms:license rdf:resource="{{ entry.license.link }}"/>
+    {% endif %}
+    
+    {% if entry.external_id %}
+    <dc:identifier>{{ entry.external_id }}</dc:identifier>
+    {% endif %}
+    
+    <dc:identifier>{{ entry.uuid }}</dc:identifier>
+    
+    <!-- Variable Information using QUDT -->
+    {% if entry.variable %}
+    <metacatalog:variableMeasured>
+      <rdf:Description>
+        <rdf:type rdf:resource="http://qudt.org/schema/qudt/Quantity"/>
+        <qudt:label>{{ entry.variable.name }}</qudt:label>
+        <metacatalog:symbol>{{ entry.variable.symbol }}</metacatalog:symbol>
+        {% if entry.variable.unit %}
+        <qudt:unit>
+          <rdf:Description>
+            <qudt:label>{{ entry.variable.unit.name }}</qudt:label>
+            <qudt:symbol>{{ entry.variable.unit.symbol }}</qudt:symbol>
+            {% if entry.variable.unit.si %}
+            <qudt:siUnit>{{ entry.variable.unit.si }}</qudt:siUnit>
+            {% endif %}
+          </rdf:Description>
+        </qudt:unit>
+        {% endif %}
+        {% if entry.variable.column_names %}
+        {% for column in entry.variable.column_names %}
+        <metacatalog:columnName>{{ column }}</metacatalog:columnName>
+        {% endfor %}
+        {% endif %}
+        {% if entry.variable.keyword %}
+        <metacatalog:thesaurusTerm>
+          <rdf:Description>
+            <skos:prefLabel>{{ entry.variable.keyword.value }}</skos:prefLabel>
+            <skos:notation>{{ entry.variable.keyword.full_path }}</skos:notation>
+            {% if entry.variable.keyword.thesaurus %}
+            <skos:inScheme rdf:resource="{{ entry.variable.keyword.thesaurus.url }}"/>
+            {% endif %}
+          </rdf:Description>
+        </metacatalog:thesaurusTerm>
+        {% endif %}
+      </rdf:Description>
+    </metacatalog:variableMeasured>
+    {% endif %}
+    
+    <!-- Spatial Information -->
+    {% if entry.location %}
+    <dcterms:spatial>
+      <rdf:Description>
+        <rdf:type rdf:resource="http://www.w3.org/2003/01/geo/wgs84_pos#Point"/>
+        <geo:lat>{{ entry.location.coordinates[1] }}</geo:lat>
+        <geo:long>{{ entry.location.coordinates[0] }}</geo:long>
+      </rdf:Description>
+    </dcterms:spatial>
+    {% endif %}
+    
+    <!-- Temporal Information -->
+    {% if entry.datasource and entry.datasource.temporal_scale %}
+    <dcterms:temporal>
+      <rdf:Description>
+        <dcterms:start>{{ entry.datasource.temporal_scale.observation_start }}</dcterms:start>
+        <dcterms:end>{{ entry.datasource.temporal_scale.observation_end }}</dcterms:end>
+        <metacatalog:temporalResolution>{{ entry.datasource.temporal_scale.resolution }}</metacatalog:temporalResolution>
+        <metacatalog:temporalSupport>{{ entry.datasource.temporal_scale.support }}</metacatalog:temporalSupport>
+        {% for dimension in entry.datasource.temporal_scale.dimension_names %}
+        <metacatalog:temporalDimension>{{ dimension }}</metacatalog:temporalDimension>
+        {% endfor %}
+      </rdf:Description>
+    </dcterms:temporal>
+    {% endif %}
+    
+    <!-- Spatial Scale Information -->
+    {% if entry.datasource and entry.datasource.spatial_scale %}
+    <metacatalog:spatialScale>
+      <rdf:Description>
+        <metacatalog:spatialResolution>{{ entry.datasource.spatial_scale.resolution }}</metacatalog:spatialResolution>
+        <metacatalog:spatialSupport>{{ entry.datasource.spatial_scale.support }}</metacatalog:spatialSupport>
+        {% for dimension in entry.datasource.spatial_scale.dimension_names %}
+        <metacatalog:spatialDimension>{{ dimension }}</metacatalog:spatialDimension>
+        {% endfor %}
+        {% if entry.datasource.spatial_scale.extent %}
+        <metacatalog:spatialExtent>
+          <rdf:Description>
+            <rdf:type rdf:resource="http://www.w3.org/2003/01/geo/wgs84_pos#SpatialThing"/>
+            <metacatalog:extentType>{{ entry.datasource.spatial_scale.extent.type }}</metacatalog:extentType>
+            <metacatalog:extentCoordinates>{{ entry.datasource.spatial_scale.extent.coordinates | tojson }}</metacatalog:extentCoordinates>
+          </rdf:Description>
+        </metacatalog:spatialExtent>
+        {% endif %}
+      </rdf:Description>
+    </metacatalog:spatialScale>
+    {% endif %}
+    
+    <!-- Data Source Information -->
+    {% if entry.datasource %}
+    <dcterms:source>
+      <rdf:Description>
+        <metacatalog:datasourcePath>{{ entry.datasource.path }}</metacatalog:datasourcePath>
+        <metacatalog:datasourceEncoding>{{ entry.datasource.encoding }}</metacatalog:datasourceEncoding>
+        {% if entry.datasource.type %}
+        <metacatalog:datasourceType>{{ entry.datasource.type.title }}</metacatalog:datasourceType>
+        {% endif %}
+        {% for varName in entry.datasource.variable_names %}
+        <metacatalog:datasourceVariableName>{{ varName }}</metacatalog:datasourceVariableName>
+        {% endfor %}
+        {% if entry.datasource.args %}
+        <metacatalog:datasourceArgs>{{ entry.datasource.args | tojson }}</metacatalog:datasourceArgs>
+        {% endif %}
+      </rdf:Description>
+    </dcterms:source>
+    {% endif %}
+    
+    <!-- Additional Details -->
+    {% for detail in entry.details %}
+    <metacatalog:detail>
+      <rdf:Description>
+        <metacatalog:detailKey>{{ detail.key }}</metacatalog:detailKey>
+        <metacatalog:detailValue>{{ detail.raw_value | tojson }}</metacatalog:detailValue>
+        {% if detail.title %}
+        <metacatalog:detailTitle>{{ detail.title }}</metacatalog:detailTitle>
+        {% endif %}
+        {% if detail.description %}
+        <metacatalog:detailDescription>{{ detail.description }}</metacatalog:detailDescription>
+        {% endif %}
+      </rdf:Description>
+    </metacatalog:detail>
+    {% endfor %}
+    
+    <!-- Access Rights -->
+    {% if entry.embargo %}
+    <dcterms:accessRights>Restricted</dcterms:accessRights>
+    {% if entry.embargo_end %}
+    <metacatalog:embargoEnd>{{ entry.embargo_end }}</metacatalog:embargoEnd>
+    {% endif %}
+    {% else %}
+    <dcterms:accessRights>Open</dcterms:accessRights>
+    {% endif %}
+    
+    <!-- Additional Properties -->
+    {% if entry.citation %}
+    <dcterms:bibliographicCitation>{{ entry.citation }}</dcterms:bibliographicCitation>
+    {% endif %}
+    
+    {% if entry.comment %}
+    <metacatalog:comment>{{ entry.comment }}</metacatalog:comment>
+    {% endif %}
+    
+    <metacatalog:isPartial>{{ entry.is_partial | lower }}</metacatalog:isPartial>
+    <metacatalog:version>{{ entry.version }}</metacatalog:version>
+    
+  </rdf:Description>
+</rdf:RDF>

@@ -3,6 +3,7 @@
 	import { buildApiUrl } from '$lib/stores/settingsStore';
 	import type { PageData } from './$types';
 	import LocationMap from './LocationMap.svelte';
+	import ExportDropdown from '$lib/components/ExportDropdown.svelte';
 	
 	let { data } = $props<{ data: PageData }>();
 	
@@ -60,12 +61,10 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					<a href={buildApiUrl(`/export/${data.dataset.id}/json`)} target="_blank" class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
-						Export JSON
-					</a>
-					<a href={buildApiUrl(`/export/${data.dataset.id}/xml`)} target="_blank" class="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
-						Export XML
-					</a>
+					<ExportDropdown 
+						entryId={data.dataset.id} 
+						buttonClass="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"
+					/>
 				</div>
 			</div>
 		</header>

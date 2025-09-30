@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resource xmlns="http://datacite.org/schema/kernel-4" 
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.4/metadata.xsd">
+  
+  <!-- Required: Identifier -->
+  <identifier identifierType="UUID">{entry.uuid}</identifier>
+  
+  <!-- Required: Creators -->
+  <creators>
+    {% if entry.author %}
+    <creator>
+      <creatorName>{% if entry.author.is_organisation %}{{ entry.author.organisation_name or 'Organisation' }}{% if entry.author.organisation_abbrev %} ({{ entry.author.organisation_abbrev }}){% endif %}{% else %}{{ entry.author.first_name }} {{ entry.author.last_name }}{% endif %}</creatorName>
+      {% if entry.author.affiliation %}<affiliation>{{ entry.author.affiliation }}</affiliation>{% endif %}
+      {% if entry.author.orcid %}<nameIdentifier nameIdentifierScheme="ORCID" schemeURI="https://orcid.org">{{ entry.author.orcid }}</nameIdentifier>{% endif %}
+    </creator>
+    {% endif %}
+    {% for coAuthor in entry.coAuthors %}
+    <creator>
+      <creatorName>{% if coAuthor.is_organisation %}{{ coAuthor.organisation_name or 'Organisation' }}{% if coAuthor.organisation_abbrev %} ({{ coAuthor.organisation_abbrev }}){% endif %}{% else %}{{ coAuthor.first_name }} {{ coAuthor.last_name }}{% endif %}</creatorName>
+      {% if coAuthor.affiliation %}<affiliation>{{ coAuthor.affiliation }}</affiliation>{% endif %}
+      {% if coAuthor.orcid %}<nameIdentifier nameIdentifierScheme="ORCID" schemeURI="https://orcid.org">{{ coAuthor.orcid }}</nameIdentifier>{% endif %}
+    </creator>
+    {% endfor %}
+  </creators>
+  
+  <!-- Required: Title -->
+  <titles>
+    <title>{{ entry.title }}</title>
+  </titles>
+  
+  <!-- Required: Publisher -->
+  <publisher>MetaCatalog</publisher>
+  
+  <!-- Required: Publication Year -->
+  <publicationYear>{{ entry.publication.year if entry.publication else '2024' }}</publicationYear>
+  
+  <!-- Required: Resource Type -->
+  <resourceType resourceTypeGeneral="Dataset">Dataset</resourceType>
+  
+  <!-- Optional: Subjects (Keywords) -->
+  {% if entry.keywords %}
+  <subjects>
+    {% for keyword in entry.keywords %}
+    <subject{% if keyword.thesaurus and keyword.thesaurus.url %} subjectScheme="{{ keyword.thesaurus.title or 'Unknown' }}" schemeURI="{{ keyword.thesaurus.url }}"{% endif %}>{{ keyword.value }}</subject>
+    {% endfor %}
+  </subjects>
+  {% endif %}
+  
+  <!-- Optional: Contributors -->
+  {% if entry.coAuthors %}
+  <contributors>
+    {% for coAuthor in entry.coAuthors %}
+    <contributor contributorType="Other">
+      <contributorName>{% if coAuthor.is_organisation %}{{ coAuthor.organisation_name or 'Organisation' }}{% if coAuthor.organisation_abbrev %} ({{ coAuthor.organisation_abbrev }}){% endif %}{% else %}{{ coAuthor.first_name }} {{ coAuthor.last_name }}{% endif %}</contributorName>
+      {% if coAuthor.affiliation %}<affiliation>{{ coAuthor.affiliation }}</affiliation>{% endif %}
+    </contributor>
+    {% endfor %}
+  </contributors>
+  {% endif %}
+  
+  <!-- Optional: Dates -->
+  <dates>
+    <date dateType="Created">{{ entry.publication }}</date>
+    {% if entry.lastUpdate %}
+    <date dateType="Updated">{{ entry.lastUpdate }}</date>
+    {% endif %}
+    {% if entry.embargo and entry.embargo_end %}
+    <date dateType="Available">{{ entry.embargo_end }}</date>
+    {% endif %}
+  </dates>
+  
+  <!-- Optional: Language -->
+  <language>en</language>
+  
+  <!-- Optional: Alternate Identifiers -->
+  {% if entry.external_id %}
+  <alternateIdentifiers>
+    <alternateIdentifier alternateIdentifierType="External">{{ entry.external_id }}</alternateIdentifier>
+  </alternateIdentifiers>
+  {% endif %}
+  
+  <!-- Optional: Related Identifiers -->
+  {% if entry.datasource and entry.datasource.path %}
+  <relatedIdentifiers>
+    <relatedIdentifier relatedIdentifierType="URL" relationType="IsSourceOf">{{ entry.datasource.path }}</relatedIdentifier>
+  </relatedIdentifiers>
+  {% endif %}
+  
+  <!-- Optional: Sizes -->
+  {% if entry.datasource and entry.datasource.variable_names %}
+  <sizes>
+    <size>{{ entry.datasource.variable_names|length }} variable(s)</size>
+  </sizes>
+  {% endif %}
+  
+  <!-- Optional: Formats -->
+  {% if entry.datasource and entry.datasource.type %}
+  <formats>
+    <format>{{ entry.datasource.type.title or 'Unknown' }}</format>
+  </formats>
+  {% endif %}
+  
+  <!-- Optional: Version -->
+  {% if entry.version %}
+  <version>{{ entry.version }}</version>
+  {% endif %}
+  
+  <!-- Optional: Rights -->
+  {% if entry.license %}
+  <rightsList>
+    <rights rightsURI="{{ entry.license.link }}">{{ entry.license.title or entry.license.short_title or 'License' }}</rights>
+  </rightsList>
+  {% endif %}
+  
+  <!-- Optional: Descriptions -->
+  <descriptions>
+    <description descriptionType="Abstract">{{ entry.abstract }}</description>
+    {% if entry.comment %}
+    <description descriptionType="Other">{{ entry.comment }}</description>
+    {% endif %}
+    {% if entry.variable %}
+    <description descriptionType="Methods">
+      Variable: {{ entry.variable.name }} ({{ entry.variable.symbol }})
+      {% if entry.variable.unit %} - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% endif %}
+      {% if entry.variable.column_names %} - Columns: {{ entry.variable.column_names|join(', ') }}{% endif %}
+    </description>
+    {% endif %}
+  </descriptions>
+  
+  <!-- Optional: GeoLocations -->
+  {% if entry.location %}
+  <geoLocations>
+    <geoLocation>
+      <geoLocationPoint>
+        <pointLongitude>{{ entry.location.coordinates[0] }}</pointLongitude>
+        <pointLatitude>{{ entry.location.coordinates[1] }}</pointLatitude>
+      </geoLocationPoint>
+    </geoLocation>
+  </geoLocations>
+  {% elif entry.datasource and entry.datasource.spatial_scale and entry.datasource.spatial_scale.extent %}
+  <geoLocations>
+    <geoLocation>
+      <geoLocationBox>
+        {% set coords = entry.datasource.spatial_scale.extent.coordinates[0] %}
+        {% set lons = coords|map(attribute='0')|list %}
+        {% set lats = coords|map(attribute='1')|list %}
+        <westBoundLongitude>{{ lons|min }}</westBoundLongitude>
+        <eastBoundLongitude>{{ lons|max }}</eastBoundLongitude>
+        <southBoundLatitude>{{ lats|min }}</southBoundLatitude>
+        <northBoundLatitude>{{ lats|max }}</northBoundLatitude>
+      </geoLocationBox>
+    </geoLocation>
+  </geoLocations>
+  {% endif %}
+  
+  <!-- Optional: Funding References -->
+  <!-- This would need to be added to your data model if you want to support funding information -->
+  
+</resource>
