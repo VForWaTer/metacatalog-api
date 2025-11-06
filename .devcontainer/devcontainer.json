@@ -1,0 +1,19 @@
+{
+    "name": "Metacatalog API Dev",
+    "dockerComposeFile": "../docker-compose.dev.yml",
+    "service": "frontend",
+    "workspaceFolder": "/app",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "svelte.svelte-vscode",
+                "bradlc.vscode-tailwindcss",
+                "ms-vscode.vscode-typescript-next",
+                "ms-python.python",
+                "ms-python.black-formatter"
+            ]
+        }
+    },
+    "forwardPorts": [5173, 8001, 5433],
+    "postCreateCommand": "cd metacatalog_api/apps/manager && npm install"
+} 

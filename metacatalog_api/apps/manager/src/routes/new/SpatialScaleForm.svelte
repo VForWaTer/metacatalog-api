@@ -1,12 +1,13 @@
 <script lang="ts">
     import { metadataEntry, metadataActions } from '$lib/stores/metadataStore';
     import type { SpatialScaleBase, Polygon } from '$lib/models';
+    import SpatialExtentMap from './SpatialExtentMap.svelte';
 
     let resolution = $state(1000); // meters
     let dimensionNamesInput = $state('latitude, longitude');
-    let showExtentMap = $state(false);
     let extentPolygon = $state<Polygon | undefined>(undefined);
     let isActive = $state(true);
+    let showWKT = $state(false); // Toggle between GeoJSON and WKT display
 
     // Load existing values from store
     $effect(() => {
@@ -34,7 +35,7 @@
         metadataActions.updateDatasourceSpatialScale(undefined);
     }
 
-    function setExtentFromMap(polygon: Polygon) {
+    function setExtentFromMap(polygon: Polygon | undefined) {
         extentPolygon = polygon;
         updateSpatialScale();
     }
@@ -52,6 +53,23 @@
         if (isActive) {
             updateSpatialScale();
         }
+    }
+
+    // Convert GeoJSON Polygon to WKT format
+    function polygonToWKT(polygon: Polygon): string {
+        if (!polygon || !polygon.coordinates || !polygon.coordinates[0]) {
+            return '';
+        }
+        
+        const coords = polygon.coordinates[0];
+        // Format: POLYGON((lng lat, lng lat, ...))
+        const coordString = coords.map(coord => `${coord[0]} ${coord[1]}`).join(', ');
+        return `POLYGON((${coordString}))`;
+    }
+
+    // Format GeoJSON for display
+    function formatGeoJSON(polygon: Polygon): string {
+        return JSON.stringify(polygon, null, 2);
     }
 </script>
 
@@ -104,47 +122,50 @@
 
     <!-- Extent Configuration -->
     <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                <label for="spatial-extent" class="block text-sm font-medium text-green-800">
-                    Spatial Extent (Required)
-                </label>
-            <button
-                type="button"
-                onmousedown={() => showExtentMap = !showExtentMap}
-                class="text-sm text-green-600 hover:text-green-800"
-            >
-                {showExtentMap ? 'Hide Map' : 'Show Map'}
-            </button>
-        </div>
+        <label for="spatial-extent" class="block text-sm font-medium text-green-800">
+            Spatial Extent (Required)
+        </label>
         
-        {#if showExtentMap}
-            <div class="p-4 bg-white border border-green-300 rounded-md">
-                <p class="text-sm text-green-700 mb-3">
-                    Use the map below to define the spatial extent of your data. 
-                    Click to add points and create a polygon boundary. This is required for spatial scales.
-                </p>
-                <!-- Placeholder for map component -->
-                <div class="h-64 bg-gray-100 border border-gray-300 rounded-md flex items-center justify-center">
-                    <p class="text-gray-500">Map component will be implemented here</p>
-                </div>
-                <p class="text-xs text-green-600 mt-2">
-                    Map integration will be added in a future update
-                </p>
-            </div>
-        {/if}
+        <div class="p-4 bg-white border border-green-300 rounded-md">
+            <SpatialExtentMap 
+                extentPolygon={extentPolygon} 
+                onExtentChange={setExtentFromMap}
+            />
+        </div>
 
         {#if extentPolygon}
-            <div class="p-3 bg-green-100 border border-green-300 rounded-md">
-                <p class="text-sm text-green-800">
-                    <strong>Current Extent:</strong> Polygon with {extentPolygon.coordinates[0].length} points
+            <div class="p-3 bg-green-100 border border-green-300 rounded-md space-y-2">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-green-800">
+                        Spatial Extent Data
+                    </p>
+                    <button
+                        type="button"
+                        onmousedown={() => showWKT = !showWKT}
+                        class="text-xs text-green-700 hover:text-green-900 px-2 py-1 border border-green-400 rounded"
+                    >
+                        {showWKT ? 'Show GeoJSON' : 'Show WKT'}
+                    </button>
+                </div>
+                {#if showWKT}
+                    <div class="mt-2">
+                        <code class="block text-xs bg-white p-2 rounded border border-green-200 overflow-x-auto font-mono text-green-900">
+                            {polygonToWKT(extentPolygon)}
+                        </code>
+                    </div>
+                {:else}
+                    <div class="mt-2">
+                        <code class="block text-xs bg-white p-2 rounded border border-green-200 overflow-x-auto font-mono text-green-900 whitespace-pre">
+                            {formatGeoJSON(extentPolygon)}
+                        </code>
+                    </div>
+                {/if}
+            </div>
+        {:else}
+            <div class="p-3 bg-yellow-50 border border-yellow-300 rounded-md">
+                <p class="text-sm text-yellow-800">
+                    <strong>No extent defined.</strong> Please draw a polygon or rectangle on the map above.
                 </p>
-                <button
-                    type="button"
-                    onmousedown={() => extentPolygon = undefined}
-                    class="text-xs text-red-600 hover:text-red-800 mt-1"
-                >
-                    Clear Extent
-                </button>
             </div>
         {/if}
     </div>
