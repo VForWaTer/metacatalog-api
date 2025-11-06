@@ -32,10 +32,13 @@
 
     function removeSpatialScale() {
         isActive = false;
+        extentPolygon = undefined;
+        showWKT = false;
         metadataActions.updateDatasourceSpatialScale(undefined);
     }
 
     function setExtentFromMap(polygon: Polygon | undefined) {
+        if (!isActive) return;
         extentPolygon = polygon;
         updateSpatialScale();
     }
