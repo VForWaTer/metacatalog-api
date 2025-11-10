@@ -119,3 +119,22 @@ def export_datacite(entry_id: int, request: Request):
         context={"entry": entries[0]}, 
         media_type='application/xml'
     )
+
+
+@export_router.get('/export/{entry_id}/zku')
+def export_zku(entry_id: int, request: Request):
+    """
+    ZKU/XML
+    Export entry as ZKU/XML format for research repositories like Zenodo
+    """
+    entries = core.entries(ids=entry_id)
+    
+    if len(entries) == 0:
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
+    
+    return templates.TemplateResponse(
+        request=request, 
+        name="zku.xml", 
+        context={"entry": entries[0]}, 
+        media_type='application/xml'
+    )

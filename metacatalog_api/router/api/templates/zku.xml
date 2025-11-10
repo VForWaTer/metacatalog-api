@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zku-content xmlns="http://kit.edu/schema/radar-zku"
+             xmlns:file="http://radar-service.eu/schemas/descriptive/radar/v09/radar-file"
+             xmlns:ns2="http://radar-service.eu/schemas/descriptive/radar/v09/radar-dataset"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://kit.edu/schema/radar-zku ./zku.xsd">
+    <variables>
+        <variable>
+        {% if entry.variable %}
+            <variableName>{{ entry.variable.name }}</variableName>
+            <variableSymbol>{{ entry.variable.symbol }}</variableSymbol>
+            <unitName>{{ entry.variable.unit.name }}</unitName>
+            <unitSymbol>{{ entry.variable.unit.symbol }}</unitSymbol>
+        </variable>
+        {% endif %}     
+    </variables>
+
+    {%if entry.datasource.temporal_scale %}
+    <temporalScales>
+        <temporalScale>
+            <temporalExtentStart>{{ entry.datasource.temporal_scale.observation_start }}</temporalExtentStart>
+            <temporalExtentEnd>{{ entry.datasource.temporal_scale.observation_end }}</temporalExtentEnd>
+            <temporalResolution>{{ entry.datasource.temporal_scale.resolution }}</temporalResolution>
+        </temporalScale>
+    </temporalScales>
+    {% endif %}
+    <description>{{ entry.abstract }}</description>
+
+    <ns3:radarDataset 
+        xmlns:ns2="http://radar-service.eu/schemas/descriptive/radar/v09/radar-elements" 
+        xmlns:ns3="http://radar-service.eu/schemas/descriptive/radar/v09/radar-dataset" 
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+        xsi:schemaLocation="http://radar-service.eu/schemas/descriptive/radar/v09/radar-dataset https://www.radar-service.eu/schemas/descriptive/radar/v9.1/RadarDataset.xsd http://radar-service.eu/schemas/descriptive/radar/v09/radar-elements https://www.radar-service.eu/schemas/descriptive/radar/v9.1/RadarElements.xsd">
+        
+        <ns2:creators>
+            <ns2:creator>
+                <ns2:creatorName>{{ entry.author.last_name }}, {{ entry.author.first_name }}</ns2:creatorName>
+                <ns2:givenName>{{ entry.author.first_name }}</ns2:givenName>
+                <ns2:familyName>{{ entry.author.last_name }}</ns2:familyName>
+                {% if entry.author.uuid %}
+                <ns2:nameIdentifier schemeURI="http://orcid.org/" nameIdentifierScheme="ORCID">{{ entry.author.uuid }}</ns2:nameIdentifier>
+                {% endif %}
+                {% if entry.author.affiliation %}
+                <ns2:creatorAffiliation>{{ entry.author.affiliation }}</ns2:creatorAffiliation>
+                {% endif %}
+            </ns2:creator>
+        </ns2:creators>
+        
+        <ns2:title>{{ entry.title }}</ns2:title>
+
+        <ns2:publisher>{{ entry.author.first_name }}, {{ entry.author.last_name }}</ns2:publisher>
+
+        <ns2:productionYear>{{ entry.datasource.temporal_scale.observation_start }}</ns2:productionYear>
+
+        <ns2:publicationYear>{{ entry.publication }}</ns2:publicationYear>
+
+        <ns2:subjectAreas>
+            <ns2:subjectArea>
+                <ns2:controlledSubjectAreaName>{{entry.variable.keyword.value }}</ns2:controlledSubjectAreaName>
+            </ns2:subjectArea>
+        </ns2:subjectAreas>
+
+        <ns2:resource>{{ entry.datasource.type.title }}</ns2:resource>
+
+        <ns2:rights>
+            <ns2:controlledRights>{{ entry. license.title }}</ns2:controlledRights>
+        </ns2:rights>
+
+        <ns2:rightsHolders>
+            <ns2:rightsHolder>{{ entry.author.last_name }}, {{ entry.author.first_name }}</ns2:rightsHolder>
+            {% if entry.author.uuid %}
+            <ns2:rightsHolder schemeURI="http://orcid.org/" nameIdentifierScheme="ORCID">{{ entry.author.uuid }}</ns2:rightsHolder>
+            {% endif %}
+            {% if entry.author.organisation_name %}
+            <ns2:rightsHolder> {{ entry.author.organisation_name }}</ns2:rightsHolder>
+            {% endif %}          
+        </ns2:rightsHolders>        
+
+    </ns3:radarDataset>
+</zku-content>
