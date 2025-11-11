@@ -1,6 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
-    import type { AuthorCreate } from '$lib/models';
+    import type { AuthorCreate, Author } from '$lib/models';
+    import { buildApiUrl } from '$lib/stores/settingsStore';
 
     const dispatch = createEventDispatcher<{
         authorFound: [AuthorCreate];
@@ -88,17 +89,51 @@
                 console.warn('Could not fetch employment data:', empError);
             }
 
-            // Create author object
-            const author: AuthorCreate = {
-                first_name: personData.name['given-names'].value,
-                last_name: personData.name['family-name'].value,
-                is_organisation: false,
-                organisation_name: '',
-                organisation_abbrev: '',
-                affiliation: affiliation
-            };
-
-            foundAuthor = author;
+            // Check if author with this ORCID already exists
+            const existingAuthorsResponse = await fetch(buildApiUrl(`/authors?orcid=${encodeURIComponent(orcidId)}`));
+            let existingAuthor: Author | null = null;
+            
+            if (existingAuthorsResponse.ok) {
+                const existingAuthors: Author[] = await existingAuthorsResponse.json();
+                if (existingAuthors.length > 0) {
+                    existingAuthor = existingAuthors[0];
+                }
+            }
+            
+            let author: AuthorCreate;
+            
+            if (existingAuthor) {
+                // Author with this ORCID already exists - use existing author
+                author = {
+                    first_name: existingAuthor.first_name || '',
+                    last_name: existingAuthor.last_name || '',
+                    is_organisation: existingAuthor.is_organisation || false,
+                    organisation_name: existingAuthor.organisation_name || '',
+                    organisation_abbrev: existingAuthor.organisation_abbrev || '',
+                    affiliation: existingAuthor.affiliation || '',
+                    orcid: existingAuthor.orcid || orcidId
+                };
+                
+                // Show info message
+                const authorName = existingAuthor.is_organisation 
+                    ? existingAuthor.organisation_name || 'Organisation'
+                    : `${existingAuthor.first_name || ''} ${existingAuthor.last_name || ''}`.trim();
+                error = null; // Clear any previous errors
+                foundAuthor = author;
+            } else {
+                // Create new author object from ORCID data
+                author = {
+                    first_name: personData.name['given-names'].value,
+                    last_name: personData.name['family-name'].value,
+                    is_organisation: false,
+                    organisation_name: '',
+                    organisation_abbrev: '',
+                    affiliation: affiliation,
+                    orcid: orcidId
+                };
+                
+                foundAuthor = author;
+            }
             
             // Auto-add to metadata store
             dispatch('authorFound', [author]);

@@ -138,7 +138,8 @@
                     is_organisation: selectedAuthor.is_organisation || false,
                     organisation_name: selectedAuthor.organisation_name || '',
                     organisation_abbrev: selectedAuthor.organisation_abbrev || '',
-                    affiliation: selectedAuthor.affiliation || ''
+                    affiliation: selectedAuthor.affiliation || '',
+                    orcid: selectedAuthor.orcid
                 };
                 
                 // Check if we already have a main author (same logic as other functions)

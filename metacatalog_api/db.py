@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from metacatalog_api import models
 from metacatalog_api.extra import geocoder
 
-DB_VERSION = 4
+DB_VERSION = 5
 SQL_DIR = Path(__file__).parent / "sql"
 
 # helper function to load sql files
@@ -228,10 +228,16 @@ def search_entries(session: Session, search: str, full_text: bool = True, limit:
     return mappings
 
 
-def get_authors(session: Session, search: str = None, exclude_ids: list[int] = None, limit: int = None, offset: int = None) -> List[models.Author]:
+def get_authors(session: Session, search: str = None, exclude_ids: list[int] = None, limit: int = None, offset: int = None, orcid: str = None) -> List[models.Author]:
     # build the base query
     query = select(models.PersonTable)
 
+    # handle ORCID filter (case-insensitive)
+    if orcid is not None:
+        query = query.where(
+            func.lower(col(models.PersonTable.orcid)) == func.lower(orcid)
+        )
+    
     # handle search
     if search is not None:
         search = search.replace('*', '%')
@@ -284,6 +290,31 @@ def get_author_by_name(session: Session, name: str, strict: bool = False) -> mod
 
 
 def create_or_get_author(session: Session, author: models.AuthorCreate) -> models.Author:
+    # Priority 1: Check by ORCID if author has ORCID
+    if author.orcid:
+        orcid_query = select(models.PersonTable).where(
+            func.lower(col(models.PersonTable.orcid)) == func.lower(author.orcid)
+        )
+        existing_by_orcid = session.exec(orcid_query).first()
+        if existing_by_orcid is not None:
+            # Found by ORCID - update missing fields if needed
+            updated = False
+            if author.first_name and not existing_by_orcid.first_name:
+                existing_by_orcid.first_name = author.first_name
+                updated = True
+            if author.last_name and not existing_by_orcid.last_name:
+                existing_by_orcid.last_name = author.last_name
+                updated = True
+            if author.affiliation and not existing_by_orcid.affiliation:
+                existing_by_orcid.affiliation = author.affiliation
+                updated = True
+            if updated:
+                session.add(existing_by_orcid)
+                session.commit()
+                session.refresh(existing_by_orcid)
+            return models.Author.model_validate(existing_by_orcid)
+    
+    # Priority 2: Fall back to name-based duplicate check
     sql = select(models.PersonTable)
     if author.is_organisation:
         sql = sql.where(
@@ -296,12 +327,19 @@ def create_or_get_author(session: Session, author: models.AuthorCreate) -> model
             (models.PersonTable.is_organisation == False) & 
             (models.PersonTable.first_name == author.first_name) &
             (models.PersonTable.last_name == author.last_name)
-    )
+        )
 
     existing_author = session.exec(sql).first()
     if existing_author is not None:
+        # Found by name - update ORCID if missing
+        if author.orcid and not existing_author.orcid:
+            existing_author.orcid = author.orcid
+            session.add(existing_author)
+            session.commit()
+            session.refresh(existing_author)
         return models.Author.model_validate(existing_author)
     else:
+        # Not found - create new author
         return add_author(session, author)
 
 
