@@ -15,7 +15,7 @@
         {% endif %}     
     </variables>
 
-    {%if entry.datasource.temporal_scale %}
+    {%if entry.datasource and entry.datasource.temporal_scale %}
     <temporalScales>
         <temporalScale>
             <temporalExtentStart>{{ entry.datasource.temporal_scale.observation_start }}</temporalExtentStart>
@@ -50,9 +50,13 @@
 
         <ns2:publisher>{{ entry.author.first_name }}, {{ entry.author.last_name }}</ns2:publisher>
 
+        {% if entry.datasource and entry.datasource.temporal_scale %}
         <ns2:productionYear>{{ entry.datasource.temporal_scale.observation_start }}</ns2:productionYear>
+        {% else %}
+        <ns2:productionYear>{{ entry.publication.year if entry.publication else '' }}</ns2:productionYear>
+        {% endif %}
 
-        <ns2:publicationYear>{{ entry.publication }}</ns2:publicationYear>
+        <ns2:publicationYear>{{ entry.publication.year if entry.publication else '' }}</ns2:publicationYear>
 
         <ns2:subjectAreas>
             <ns2:subjectArea>
@@ -60,7 +64,9 @@
             </ns2:subjectArea>
         </ns2:subjectAreas>
 
+        {% if entry.datasource %}
         <ns2:resource>{{ entry.datasource.type.title }}</ns2:resource>
+        {% endif %}
 
         <ns2:rights>
             <ns2:controlledRights>{{ entry. license.title }}</ns2:controlledRights>
