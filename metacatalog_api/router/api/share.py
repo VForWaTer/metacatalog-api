@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from metacatalog_api import core
+from metacatalog_api.router.api.read import get_export_formats_list
 from metacatalog_api.server import server
 
 share_router = APIRouter()
@@ -160,8 +161,9 @@ def create_share_package(entry_id: int, formats: list[str], include_data: bool =
     return zip_buffer, filename
 
 
+# This is the example for providing a new share provider
 @share_router.get('/share/download/form')
-def get_download_form(entry_id: int):
+def get_download_form(entry_id: int, request: Request):
     """
     Download Package
     """
@@ -169,6 +171,23 @@ def get_download_form(entry_id: int):
     entries = core.entries(ids=entry_id)
     if len(entries) == 0:
         raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
+    
+    # Get available export formats dynamically
+    export_formats = get_export_formats_list(request.app)
+    format_options = [
+        {"value": fmt['format'], "label": fmt['display_name']}
+        for fmt in export_formats
+    ]
+    
+    # Set default to first two formats, or json and datacite if available
+    default_formats = []
+    format_names = [fmt['format'] for fmt in export_formats]
+    if 'json' in format_names:
+        default_formats.append('json')
+    if 'datacite' in format_names:
+        default_formats.append('datacite')
+    if len(default_formats) == 0 and len(format_names) > 0:
+        default_formats = format_names[:2]  # First two formats as fallback
     
     return {
         "fields": [
@@ -178,16 +197,8 @@ def get_download_form(entry_id: int):
                 "label": "Metadata Formats",
                 "required": True,
                 "multiple": True,
-                "options": [
-                    {"value": "json", "label": "MetaCatalog JSON"},
-                    {"value": "datacite", "label": "DataCite XML"},
-                    {"value": "zku", "label": "ZKU/XML"},
-                    {"value": "dublincore", "label": "Dublin Core"},
-                    {"value": "schemaorg", "label": "Schema.org"},
-                    {"value": "rdf", "label": "RDF/XML"},
-                    {"value": "xml", "label": "MetaCatalog XML"}
-                ],
-                "default": ["json", "datacite"]
+                "options": format_options,
+                "default": default_formats
             },
             {
                 "name": "include_data",
@@ -213,12 +224,15 @@ async def submit_download(entry_id: int, request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body. Expected JSON with 'metadata_formats' and 'include_data' fields.")
     
-    # Validate formats
-    valid_formats = ['json', 'xml', 'datacite', 'zku', 'dublincore', 'schemaorg', 'rdf']
+    # Validate formats against dynamically discovered export formats
+    export_formats = get_export_formats_list(request.app)
+    valid_formats = [fmt['format'] for fmt in export_formats]
+    
     if not isinstance(metadata_formats, list) or not all(f in valid_formats for f in metadata_formats):
+        format_names = ', '.join(valid_formats)
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid metadata_formats. Must be a list containing one or more of: {', '.join(valid_formats)}"
+            detail=f"Invalid metadata_formats. Must be a list containing one or more of: {format_names}"
         )
     
     # Create package

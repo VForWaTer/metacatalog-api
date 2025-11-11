@@ -178,13 +178,11 @@ def get_group(group_id) -> models.EntryGroupWithMetadata:
     return group
 
 
-@read_router.get('/export-formats')
-def get_export_formats(request: Request):
+def get_export_formats_list(app) -> list[dict]:
     """
-    Get all available export formats by scanning FastAPI routes
+    Get all available export formats by scanning FastAPI routes.
+    Returns a list of format dictionaries with 'format' and 'display_name' keys.
     """
-    app = request.app
-    
     export_routes = []
     for route in app.routes:
         if hasattr(route, 'path') and route.path.startswith('/export/'):
@@ -209,4 +207,13 @@ def get_export_formats(request: Request):
                     'methods': list(route.methods) if hasattr(route, 'methods') else ['GET']
                 })
     
+    return export_routes
+
+
+@read_router.get('/export-formats')
+def get_export_formats(request: Request):
+    """
+    Get all available export formats by scanning FastAPI routes
+    """
+    export_routes = get_export_formats_list(request.app)
     return {"export_formats": export_routes}
