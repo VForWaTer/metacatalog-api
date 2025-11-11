@@ -20,6 +20,9 @@ from metacatalog_api.router.api.export import export_router as api_export_router
 from metacatalog_api.router.api.share import share_router as api_share_router
 from metacatalog_api.router.api.security import validate_api_key, router as security_router
 
+# Import share providers to register their routes
+from metacatalog_api.router.api import share_provider  # noqa: F401
+
 # at first we add the cors middleware to allow everyone to reach the API
 app.add_middleware(
     CORSMiddleware, 

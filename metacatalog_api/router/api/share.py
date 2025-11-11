@@ -1,19 +1,15 @@
-from pathlib import Path
 import io
-import zipfile
 import json
+import zipfile
 
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import StreamingResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Request
+
 
 from metacatalog_api import core
-from metacatalog_api.router.api.read import get_export_formats_list
-from metacatalog_api.server import server
+from metacatalog_api.router.api.export import render_export
+
 
 share_router = APIRouter()
-
-templates = Jinja2Templates(directory=Path(__file__).parent / 'templates')
 
 
 @share_router.get('/share-providers')
@@ -63,52 +59,24 @@ def get_share_providers(request: Request):
     return {"share_providers": valid_providers}
 
 
-def create_share_package(entry_id: int, formats: list[str], include_data: bool = True) -> tuple[io.BytesIO, str]:
+def create_share_package(request: Request, entry_id: int, formats: list[str], include_data: bool = True) -> tuple[io.BytesIO, str]:
     """
     Create a shareable package with metadata and optionally data files.
     
     Returns:
         tuple: (zip_buffer, filename) where zip_buffer is a BytesIO object
     """
-    # Get entry metadata
-    entries = core.entries(ids=entry_id)
-    if len(entries) == 0:
-        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
-    
-    entry = entries[0]
+    app = request.app
     
     # Create ZIP file in memory
     zip_buffer = io.BytesIO()
     
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        # Add metadata files in requested formats
+        # Add metadata files in requested formats using dynamic export system
         for format_name in formats:
             try:
-                if format_name == 'json':
-                    # JSON format
-                    entry_dict = entry.model_dump(mode='json')
-                    zip_file.writestr(
-                        f"metadata/entry.json",
-                        json.dumps(entry_dict, indent=2, default=str)
-                    )
-                elif format_name == 'xml':
-                    # MetaCatalog XML
-                    groups = core.groups(entry_id=entry_id)
-                    template_content = templates.get_template("entry.xml").render(
-                        entry=entry,
-                        groups=groups,
-                        path=server.app_prefix
-                    )
-                    zip_file.writestr(f"metadata/entry.xml", template_content)
-                elif format_name in ['datacite', 'dublincore', 'rdf', 'zku']:
-                    # Template-based formats
-                    template_name = f"{format_name}.xml"
-                    template_content = templates.get_template(template_name).render(entry=entry)
-                    zip_file.writestr(f"metadata/entry_{format_name}.xml", template_content)
-                elif format_name == 'schemaorg':
-                    # Schema.org JSON-LD
-                    template_content = templates.get_template("schemaorg.json").render(entry=entry)
-                    zip_file.writestr(f"metadata/entry_schemaorg.json", template_content)
+                content, filename = render_export(app, entry_id, format_name, request)
+                zip_file.writestr(f"metadata/{filename}", content)
             except Exception as e:
                 # Skip formats that fail, but continue with others
                 continue
@@ -159,95 +127,4 @@ def create_share_package(entry_id: int, formats: list[str], include_data: bool =
     filename = f"entry_{entry_id}_package.zip"
     
     return zip_buffer, filename
-
-
-# This is the example for providing a new share provider
-@share_router.get('/share/download/form')
-def get_download_form(entry_id: int, request: Request):
-    """
-    Download Package
-    """
-    # Validate entry exists
-    entries = core.entries(ids=entry_id)
-    if len(entries) == 0:
-        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
-    
-    # Get available export formats dynamically
-    export_formats = get_export_formats_list(request.app)
-    format_options = [
-        {"value": fmt['format'], "label": fmt['display_name']}
-        for fmt in export_formats
-    ]
-    
-    # Set default to first two formats, or json and datacite if available
-    default_formats = []
-    format_names = [fmt['format'] for fmt in export_formats]
-    if 'json' in format_names:
-        default_formats.append('json')
-    if 'datacite' in format_names:
-        default_formats.append('datacite')
-    if len(default_formats) == 0 and len(format_names) > 0:
-        default_formats = format_names[:2]  # First two formats as fallback
-    
-    return {
-        "fields": [
-            {
-                "name": "metadata_formats",
-                "type": "select",
-                "label": "Metadata Formats",
-                "required": True,
-                "multiple": True,
-                "options": format_options,
-                "default": default_formats
-            },
-            {
-                "name": "include_data",
-                "type": "checkbox",
-                "label": "Include Data Files",
-                "default": True
-            }
-        ],
-        "metadata_preview": False
-    }
-
-
-@share_router.post('/share/download/submit')
-async def submit_download(entry_id: int, request: Request):
-    """
-    Submit download request and return package
-    """
-    # Parse request body
-    try:
-        body = await request.json()
-        metadata_formats = body.get('metadata_formats', ['json', 'datacite'])
-        include_data = body.get('include_data', True)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid request body. Expected JSON with 'metadata_formats' and 'include_data' fields.")
-    
-    # Validate formats against dynamically discovered export formats
-    export_formats = get_export_formats_list(request.app)
-    valid_formats = [fmt['format'] for fmt in export_formats]
-    
-    if not isinstance(metadata_formats, list) or not all(f in valid_formats for f in metadata_formats):
-        format_names = ', '.join(valid_formats)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid metadata_formats. Must be a list containing one or more of: {format_names}"
-        )
-    
-    # Create package
-    zip_buffer, filename = create_share_package(entry_id, metadata_formats, include_data)
-    
-    # Return ZIP file as streaming response
-    # Note: zip_buffer is already a BytesIO object, we need to read its contents
-    zip_data = zip_buffer.read()
-    zip_buffer.close()
-    
-    return StreamingResponse(
-        io.BytesIO(zip_data),
-        media_type="application/zip",
-        headers={
-            "Content-Disposition": f'attachment; filename="{filename}"'
-        }
-    )
 

@@ -13,3 +13,4 @@ psycopg2-binary
 shapely
 ipython
 polars
+httpx
