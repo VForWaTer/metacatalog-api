@@ -1,12 +1,18 @@
 import io
+import json
+import zipfile
+from pathlib import Path
 
 import httpx
 from fastapi import Request, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.templating import Jinja2Templates
 
 from metacatalog_api import core, models
 from metacatalog_api.router.api.share import share_router, create_share_package
 from metacatalog_api.router.api.read import get_export_formats_list
+
+templates = Jinja2Templates(directory=Path(__file__).parent / 'templates')
 
 
 # This is the example for providing a new share provider
@@ -259,6 +265,109 @@ def convert_entry_to_zenodo_metadata(entry: models.Metadata) -> dict:
     return {"metadata": metadata}
 
 
+def create_zenodo_package(request: Request, entry_id: int) -> tuple[io.BytesIO, str]:
+    """
+    Create a Zenodo-specific package with README.md, metacatalog.json, 
+    metadata exports, and data files.
+    
+    Returns:
+        tuple: (zip_buffer, filename) where zip_buffer is a BytesIO object
+    """
+    # Get entry metadata
+    entries = core.entries(ids=entry_id)
+    if len(entries) == 0:
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
+    
+    entry = entries[0]
+    
+    # Create ZIP file in memory
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # 1. Generate and add README.md
+        readme_content = f"# {entry.title}\n\n"
+        
+        if entry.abstract:
+            readme_content += f"## Abstract\n\n{entry.abstract}\n\n"
+        
+        readme_content += "## About This Record\n\n"
+        readme_content += "This record was automatically generated and uploaded by MetaCatalog API.\n\n"
+        
+        # Generate backlink URL from request
+        base_url = f"{request.url.scheme}://{request.url.netloc}"
+        entry_url = f"{base_url}/entries/{entry_id}"
+        readme_content += f"[View this entry in MetaCatalog]({entry_url})\n"
+        
+        zip_file.writestr("README.md", readme_content)
+        
+        # 2. Add metacatalog.json to root
+        entry_dict = entry.model_dump(mode='json')
+        zip_file.writestr(
+            "metacatalog.json",
+            json.dumps(entry_dict, indent=2, default=str)
+        )
+        
+        # 3. Add metadata exports to metadata/ folder
+        # Add datacite.xml
+        try:
+            datacite_content = templates.get_template("datacite.xml").render(entry=entry)
+            zip_file.writestr("metadata/datacite.xml", datacite_content)
+        except Exception as e:
+            # Skip if template fails, but continue
+            pass
+        
+        # Add dublincore.xml
+        try:
+            dublincore_content = templates.get_template("dublincore.xml").render(entry=entry)
+            zip_file.writestr("metadata/dublincore.xml", dublincore_content)
+        except Exception as e:
+            # Skip if template fails, but continue
+            pass
+        
+        # 4. Add data files to data/ folder
+        data_info = core.get_entry_data_file(entry_id)
+        
+        if data_info['error']:
+            # Create error manifest
+            manifest = {
+                "type": "error",
+                "error": data_info['error'],
+                "description": "Data file could not be included in package"
+            }
+            zip_file.writestr("data/manifest.json", json.dumps(manifest, indent=2))
+        elif data_info['is_stream']:
+            # Internal table - stream data to ZIP
+            csv_content = ""
+            for chunk in data_info['stream_generator']():
+                csv_content += chunk
+            zip_file.writestr(f"data/{data_info['filename']}", csv_content)
+        elif data_info['file_path']:
+            # File-based datasource - add file to ZIP
+            zip_file.write(str(data_info['file_path']), f"data/{data_info['filename']}")
+        else:
+            # External or unsupported - create manifest
+            if entry.datasource:
+                if entry.datasource.type.name == "external":
+                    manifest = {
+                        "type": "external",
+                        "url": entry.datasource.path,
+                        "description": "External datasource - data not included in package"
+                    }
+                else:
+                    manifest = {
+                        "type": entry.datasource.type.name if entry.datasource.type else "unknown",
+                        "path": entry.datasource.path,
+                        "status": "unsupported",
+                        "description": f"Datasource type '{entry.datasource.type.name if entry.datasource.type else 'unknown'}' is not supported for packaging"
+                    }
+                zip_file.writestr("data/manifest.json", json.dumps(manifest, indent=2))
+    
+    zip_buffer.seek(0)
+    filename = f"entry_{entry_id}_package.zip"
+    
+    return zip_buffer, filename
+
+
 @share_router.get('/share/zenodo/form')
 def get_zenodo_form(entry_id: int, request: Request):
     """
@@ -356,8 +465,8 @@ async def submit_zenodo(entry_id: int, request: Request):
         "Content-Type": "application/json"
     }
     
-    # Create share package
-    zip_buffer, zip_filename = create_share_package(request, entry_id, ['datacite'], include_data=True)
+    # Create Zenodo-specific package
+    zip_buffer, zip_filename = create_zenodo_package(request, entry_id)
     zip_data = zip_buffer.read()
     zip_buffer.close()
     
