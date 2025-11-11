@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import LocationMap from './LocationMap.svelte';
 	import ExportDropdown from '$lib/components/ExportDropdown.svelte';
+	import ShareDropdown from '$lib/components/ShareDropdown.svelte';
 	
 	let { data } = $props<{ data: PageData }>();
 	
@@ -64,6 +65,10 @@
 					<ExportDropdown 
 						entryId={data.dataset.id} 
 						buttonClass="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"
+					/>
+					<ShareDropdown 
+						entryId={data.dataset.id} 
+						buttonClass="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center gap-1"
 					/>
 				</div>
 			</div>

@@ -1,8 +1,9 @@
-from typing import List, Generator
+from typing import List, Generator, Dict, Any, Callable, Optional
 import os
 from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime
+import mimetypes
 
 from sqlmodel import Session, create_engine, text
 from metacatalog_api import models
@@ -253,3 +254,152 @@ def add_group(payload: models.EntryGroupCreate) -> models.EntryGroup:
             entry_ids=payload.entry_ids
         )
     return group
+
+
+def get_entry_data_file(entry_id: int) -> Dict[str, Any]:
+    """
+    Get data file information for an entry.
+    
+    Returns:
+        dict with keys:
+        - file_path: Path object or None
+        - mime_type: str or None
+        - filename: str or None
+        - stream_generator: callable generator or None
+        - is_stream: bool
+        - error: str or None
+    """
+    # Get entry
+    entry_list = entries(ids=entry_id)
+    if len(entry_list) == 0:
+        return {
+            'file_path': None,
+            'mime_type': None,
+            'filename': None,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': f"Metadata Entry of id <ID={entry_id}> not found"
+        }
+    
+    entry = entry_list[0]
+    datasource = entry.datasource
+    if datasource is None:
+        return {
+            'file_path': None,
+            'mime_type': None,
+            'filename': None,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': f"Metadata Entry of id <ID={entry_id}> has no datasource"
+        }
+    
+    # Check for unsupported cases
+    if '*' in datasource.path:
+        return {
+            'file_path': None,
+            'mime_type': None,
+            'filename': None,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': "MetaCatalog API does currently not support streaming of wildcard paths"
+        }
+    
+    if Path(datasource.path).is_dir():
+        return {
+            'file_path': None,
+            'mime_type': None,
+            'filename': None,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': f"Metadata Entry of id <ID={entry_id}> points to a directory. GZip result streaming is not yet supported."
+        }
+    
+    # Handle different datasource types
+    if datasource.type.name == "internal":
+        # Internal table - return generator function
+        def stream_internal_table():
+            headers = []
+            if datasource.temporal_scale is not None:
+                headers.extend(datasource.temporal_scale.dimension_names)
+            if datasource.spatial_scale is not None:
+                headers.extend(datasource.spatial_scale.dimension_names)
+            headers.extend(datasource.variable_names)
+            yield ",".join(headers) + "\n"
+            sql = text(f"SELECT * FROM {datasource.path};")
+            with connect() as session:
+                for record in session.exec(sql):
+                    yield ",".join([str(c) for c in record]) + "\n"
+        
+        return {
+            'file_path': None,
+            'mime_type': 'text/csv',
+            'filename': f'entry_{entry_id}_data.csv',
+            'stream_generator': stream_internal_table,
+            'is_stream': True,
+            'error': None
+        }
+    
+    elif datasource.type.name == "external":
+        return {
+            'file_path': None,
+            'mime_type': None,
+            'filename': None,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': f"Metadata Entry of id <ID={entry_id}> is external and cannot be downloaded"
+        }
+    
+    elif datasource.type.name in ["csv", "local", "netCDF"]:
+        # Resolve file path (handle hash-based paths from upload cache)
+        file_path = None
+        if datasource.path in cache:
+            # Path is a hash, get actual file from cache
+            file_info = cache.get_file(datasource.path)
+            file_path = file_info.file
+            original_filename = file_info.filename
+        else:
+            # Path is a regular file path
+            file_path = Path(datasource.path)
+            original_filename = file_path.name
+        
+        if not file_path.exists() or not file_path.is_file():
+            return {
+                'file_path': None,
+                'mime_type': None,
+                'filename': None,
+                'stream_generator': None,
+                'is_stream': False,
+                'error': f"Data file not found at path: {datasource.path}"
+            }
+        
+        # Determine MIME type and filename
+        if datasource.type.name == "csv":
+            mime_type = "text/csv"
+            filename = original_filename if datasource.path in cache else "data.csv"
+        elif datasource.type.name == "netCDF":
+            mime_type = "application/netcdf"
+            filename = original_filename if datasource.path in cache else "data.nc"
+        else:  # local
+            mime_type, _ = mimetypes.guess_type(str(file_path))
+            if mime_type is None:
+                mime_type = "application/octet-stream"
+            filename = original_filename
+        
+        return {
+            'file_path': file_path,
+            'mime_type': mime_type,
+            'filename': filename,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': None
+        }
+    
+    else:
+        return {
+            'file_path': None,
+            'mime_type': None,
+            'filename': None,
+            'stream_generator': None,
+            'is_stream': False,
+            'error': f"Metadata Entry of id <ID={entry_id}> has an unknown datasource type: {datasource.type.name if datasource.type else 'unknown'}"
+        }

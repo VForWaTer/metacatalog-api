@@ -17,6 +17,7 @@ from metacatalog_api.apps.explorer.upload import upload_router as explorer_uploa
 from metacatalog_api.router.api.data import data_router
 from metacatalog_api.router.api.preview import preview_router
 from metacatalog_api.router.api.export import export_router as api_export_router
+from metacatalog_api.router.api.share import share_router as api_share_router
 from metacatalog_api.router.api.security import validate_api_key, router as security_router
 
 # at first we add the cors middleware to allow everyone to reach the API
@@ -41,6 +42,7 @@ def index(request: Request):
 # add all api routes - currently this is only splitted into read and create
 app.include_router(api_read_router)
 app.include_router(api_export_router)
+app.include_router(api_share_router)
 app.include_router(api_create_router, dependencies=[Depends(validate_api_key)])
 app.include_router(upload_router, dependencies=[Depends(validate_api_key)])
 app.include_router(data_router, dependencies=[Depends(validate_api_key)])
