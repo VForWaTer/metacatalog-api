@@ -588,10 +588,10 @@ async def submit_zenodo(entry_id: int, request: Request):
     except httpx.HTTPError as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Network error while communicating with Zenodo: {str(e)}"
-        )
+            detail=f"Network error while communicating with Zenodo: {e!s}"
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Unexpected error during Zenodo upload: {str(e)}"
-        )
+            detail=f"Unexpected error during Zenodo upload: {e!s}"
+        ) from e
