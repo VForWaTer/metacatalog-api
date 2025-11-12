@@ -141,7 +141,7 @@ def licenses(id: int = None, offset: int = None, limit: int = None) -> models.Li
     return result
 
 
-def authors(id: int = None, entry_id: int = None, search: str = None, name: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None) -> List[models.Author]:
+def authors(id: int = None, entry_id: int = None, search: str = None, name: str = None, exclude_ids: List[int] = None, offset: int = None, limit: int = None, orcid: str = None) -> List[models.Author]:
     with connect() as session:
         # if an author_id is given, we return only the author of that id
         if id is not None:
@@ -152,7 +152,7 @@ def authors(id: int = None, entry_id: int = None, search: str = None, name: str 
         elif name is not None:
             authors = db.get_authors_by_name(session, name=name, limit=limit, offset=offset)
         else:
-            authors = db.get_authors(session, search=search, exclude_ids=exclude_ids, limit=limit, offset=offset)
+            authors = db.get_authors(session, search=search, exclude_ids=exclude_ids, limit=limit, offset=offset, orcid=orcid)
     
     return authors
 

@@ -54,9 +54,9 @@ def get_licenses(license_id: int | None = None):
 @read_router.get('/authors.json')
 @read_router.get('/entries/{entry_id}/authors')
 @read_router.get('/entries/{entry_id}/authors.json')
-def get_authors(entry_id: int | None = None, author_id: int | None = None, search: str = None, exclude_ids: list[int] = None, target: str = None, offset: int = None, limit: int = None):
+def get_authors(entry_id: int | None = None, author_id: int | None = None, search: str = None, exclude_ids: list[int] = None, target: str = None, offset: int = None, limit: int = None, orcid: str = None):
     try:
-        authors = core.authors(id=author_id, entry_id=entry_id, search=search, exclude_ids=exclude_ids, offset=offset, limit=limit)
+        authors = core.authors(id=author_id, entry_id=entry_id, search=search, exclude_ids=exclude_ids, offset=offset, limit=limit, orcid=orcid)
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
 

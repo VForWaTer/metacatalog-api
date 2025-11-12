@@ -25,6 +25,7 @@ export interface PersonBase {
   organisation_abbrev?: string;
   affiliation?: string;
   attribution?: string;
+  orcid?: string;
 }
 
 export interface PersonTable extends PersonBase {

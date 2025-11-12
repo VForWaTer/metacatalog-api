@@ -47,6 +47,7 @@ class PersonBase(SQLModel):
     organisation_abbrev: str | None = None
     affiliation: str | None = None
     attribution: str | None = None
+    orcid: str | None = None
     
     @field_validator('uuid', mode='before', check_fields=False)
     @classmethod
