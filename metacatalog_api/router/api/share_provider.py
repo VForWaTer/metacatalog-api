@@ -7,6 +7,7 @@ import httpx
 from fastapi import Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import TemplateError
 
 from metacatalog_api import core, models
 from metacatalog_api.router.api.share import share_router, create_share_package
@@ -75,8 +76,8 @@ async def submit_download(entry_id: int, request: Request):
         body = await request.json()
         metadata_formats = body.get('metadata_formats', ['json', 'datacite'])
         include_data = body.get('include_data', True)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid request body. Expected JSON with 'metadata_formats' and 'include_data' fields.")
+    except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
+        raise HTTPException(status_code=400, detail="Invalid request body. Expected JSON with 'metadata_formats' and 'include_data' fields.") from e
     
     # Validate formats against dynamically discovered export formats
     export_formats = get_export_formats_list(request.app)
@@ -312,7 +313,7 @@ def create_zenodo_package(request: Request, entry_id: int) -> tuple[io.BytesIO, 
         try:
             datacite_content = templates.get_template("datacite.xml").render(entry=entry)
             zip_file.writestr("metadata/datacite.xml", datacite_content)
-        except Exception as e:
+        except TemplateError:
             # Skip if template fails, but continue
             pass
         
@@ -320,7 +321,7 @@ def create_zenodo_package(request: Request, entry_id: int) -> tuple[io.BytesIO, 
         try:
             dublincore_content = templates.get_template("dublincore.xml").render(entry=entry)
             zip_file.writestr("metadata/dublincore.xml", dublincore_content)
-        except Exception as e:
+        except TemplateError:
             # Skip if template fails, but continue
             pass
         
@@ -336,10 +337,8 @@ def create_zenodo_package(request: Request, entry_id: int) -> tuple[io.BytesIO, 
             }
             zip_file.writestr("data/manifest.json", json.dumps(manifest, indent=2))
         elif data_info['is_stream']:
-            # Internal table - stream data to ZIP
-            csv_content = ""
-            for chunk in data_info['stream_generator']():
-                csv_content += chunk
+
+            csv_content = "".join(data_info['stream_generator']())
             zip_file.writestr(f"data/{data_info['filename']}", csv_content)
         elif data_info['file_path']:
             # File-based datasource - add file to ZIP
@@ -429,8 +428,8 @@ async def submit_zenodo(entry_id: int, request: Request):
         body = await request.json()
         zenodo_token = body.get('zenodo_token')
         use_sandbox = body.get('use_sandbox', True)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid request body. Expected JSON with 'zenodo_token' and optional 'use_sandbox' fields.")
+    except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
+        raise HTTPException(status_code=400, detail="Invalid request body. Expected JSON with 'zenodo_token' and optional 'use_sandbox' fields.") from e
     
     if not zenodo_token:
         raise HTTPException(status_code=400, detail="zenodo_token is required")
@@ -488,7 +487,8 @@ async def submit_zenodo(entry_id: int, request: Request):
                     # Log full error response for debugging
                     if error_json:
                         error_detail = f"{error_detail} (Full response: {error_json})"
-                except:
+                except (json.JSONDecodeError, ValueError):
+                    # Response is not JSON, use text as-is
                     pass
                 
                 # Provide helpful error messages for common issues
@@ -523,7 +523,8 @@ async def submit_zenodo(entry_id: int, request: Request):
                 try:
                     error_json = upload_response.json()
                     error_detail = error_json.get('message', error_detail)
-                except:
+                except (json.JSONDecodeError, ValueError):
+                    # Response is not JSON, use text as-is
                     pass
                 raise HTTPException(
                     status_code=upload_response.status_code,
@@ -545,7 +546,8 @@ async def submit_zenodo(entry_id: int, request: Request):
                 try:
                     error_json = metadata_response.json()
                     error_detail = error_json.get('message', error_detail)
-                except:
+                except (json.JSONDecodeError, ValueError):
+                    # Response is not JSON, use text as-is
                     pass
                 raise HTTPException(
                     status_code=metadata_response.status_code,
