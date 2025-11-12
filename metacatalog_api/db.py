@@ -291,6 +291,7 @@ def get_author_by_name(session: Session, name: str, strict: bool = False) -> mod
 
 def create_or_get_author(session: Session, author: models.AuthorCreate) -> models.Author:
     # Priority 1: Check by ORCID if author has ORCID
+    # ORCID is a unique identifier, so if provided, we should only match by ORCID
     if author.orcid:
         orcid_query = select(models.PersonTable).where(
             func.lower(col(models.PersonTable.orcid)) == func.lower(author.orcid)
@@ -313,8 +314,13 @@ def create_or_get_author(session: Session, author: models.AuthorCreate) -> model
                 session.commit()
                 session.refresh(existing_by_orcid)
             return models.Author.model_validate(existing_by_orcid)
+        else:
+            # Not found by ORCID - create new author
+            # Do NOT fall back to name-based matching to avoid incorrectly assigning
+            # ORCID to a different person with the same name
+            return add_author(session, author)
     
-    # Priority 2: Fall back to name-based duplicate check
+    # Priority 2: Name-based duplicate check (only when no ORCID is provided)
     sql = select(models.PersonTable)
     if author.is_organisation:
         sql = sql.where(
@@ -331,12 +337,8 @@ def create_or_get_author(session: Session, author: models.AuthorCreate) -> model
 
     existing_author = session.exec(sql).first()
     if existing_author is not None:
-        # Found by name - update ORCID if missing
-        if author.orcid and not existing_author.orcid:
-            existing_author.orcid = author.orcid
-            session.add(existing_author)
-            session.commit()
-            session.refresh(existing_author)
+        # Found by name - return existing author
+        # Note: We don't update ORCID here since author.orcid is None at this point
         return models.Author.model_validate(existing_author)
     else:
         # Not found - create new author
