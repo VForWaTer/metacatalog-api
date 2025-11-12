@@ -16,6 +16,17 @@
     let isSubmitting = $state(false);
     let error = $state<string | null>(null);
     let success = $state<string | null>(null);
+    let responseData = $state<{
+        message?: string;
+        warning?: string;
+        links?: Record<string, string>;
+        prereserved_doi?: string;
+    } | null>(null);
+    
+    // Token management
+    const TOKEN_STORAGE_KEY = 'zenodo_token';
+    let tokenFromStorage = $state<string | null>(null);
+    let tokenCleared = $state(false);
 
     // Fetch form schema when modal opens
     onMount(() => {
@@ -34,6 +45,12 @@
             formData = {};
             error = null;
             success = null;
+            responseData = null;
+            tokenCleared = false;
+            // Reload token from storage when modal reopens
+            if (typeof window !== 'undefined') {
+                tokenFromStorage = localStorage.getItem(TOKEN_STORAGE_KEY);
+            }
         }
     });
 
@@ -49,8 +66,18 @@
                 // Initialize form data with defaults
                 if (schema.fields) {
                     const initialData: Record<string, any> = {};
+                    
+                    // Load token from localStorage
+                    if (typeof window !== 'undefined') {
+                        tokenFromStorage = localStorage.getItem(TOKEN_STORAGE_KEY);
+                        tokenCleared = false;
+                    }
+                    
                     for (const field of schema.fields) {
-                        if (field.default !== undefined) {
+                        if (field.name === 'zenodo_token' && tokenFromStorage && !tokenCleared) {
+                            // Prefill token from localStorage
+                            initialData[field.name] = tokenFromStorage;
+                        } else if (field.default !== undefined) {
                             initialData[field.name] = field.default;
                         } else if (field.type === 'checkbox') {
                             initialData[field.name] = false;
@@ -74,6 +101,26 @@
 
     function handleFieldChange(fieldName: string, value: any) {
         formData[fieldName] = value;
+        
+        // Save token to localStorage when changed (but don't reset tokenCleared flag)
+        if (fieldName === 'zenodo_token' && typeof window !== 'undefined') {
+            if (value && value.trim()) {
+                localStorage.setItem(TOKEN_STORAGE_KEY, value.trim());
+                // Only update tokenFromStorage if it was cleared (user entered new token)
+                if (tokenCleared) {
+                    tokenFromStorage = value.trim();
+                }
+            }
+        }
+    }
+    
+    function clearToken() {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
+            tokenFromStorage = null;
+            tokenCleared = true;
+            formData['zenodo_token'] = '';
+        }
     }
 
     async function handleSubmit() {
@@ -82,6 +129,11 @@
         success = null;
 
         try {
+            // Save token to localStorage before submitting
+            if (formData['zenodo_token'] && typeof window !== 'undefined') {
+                localStorage.setItem(TOKEN_STORAGE_KEY, formData['zenodo_token'].trim());
+            }
+            
             const response = await fetch(
                 buildApiUrl(`${provider.submit_endpoint}?entry_id=${entryId}`),
                 {
@@ -122,9 +174,24 @@
                         onClose();
                     }, 1500);
                 } else {
-                    // Handle JSON response (for future providers like Zenodo)
+                    // Handle JSON response with structured fields
                     const result = await response.json();
-                    success = result.message || 'Submitted successfully!';
+                    if (result.success !== false) {
+                        success = result.message || 'Submitted successfully!';
+                        // Store structured response data for display
+                        responseData = {
+                            message: result.message,
+                            warning: result.warning,
+                            links: result.links
+                        };
+                    } else {
+                        error = result.error || result.message || 'Submission failed';
+                        responseData = {
+                            message: result.message,
+                            warning: result.warning,
+                            links: result.links
+                        };
+                    }
                 }
             } else {
                 const errorData = await response.json().catch(() => ({ detail: response.statusText }));
@@ -137,9 +204,12 @@
         }
     }
 
-    function handleBackdropClick(event: MouseEvent) {
+    function handleBackdropClick(event: MouseEvent | KeyboardEvent) {
         if (event.target === event.currentTarget) {
-            onClose();
+            // Only close on click or Enter/Space key
+            if (event instanceof MouseEvent || (event instanceof KeyboardEvent && (event.key === 'Enter' || event.key === ' '))) {
+                onClose();
+            }
         }
     }
 </script>
@@ -147,14 +217,16 @@
 {#if isOpen}
     <!-- Modal Backdrop -->
     <div 
-        class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+        class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center"
         onclick={handleBackdropClick}
+        onkeydown={handleBackdropClick}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
+        tabindex="-1"
     >
         <!-- Modal Content -->
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <!-- Modal Header -->
             <div class="flex justify-between items-center p-6 border-b border-gray-200">
                 <h2 id="modal-title" class="text-xl font-semibold text-gray-900">
@@ -193,7 +265,47 @@
                     <!-- Success Message -->
                     {#if success}
                         <div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
-                            <p class="text-green-800 text-sm">{success}</p>
+                            <p class="text-green-800 text-sm font-medium">{success}</p>
+                        </div>
+                    {/if}
+
+                    <!-- Warning Message -->
+                    {#if responseData?.warning}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                            <p class="text-yellow-800 text-sm">{responseData.warning}</p>
+                        </div>
+                    {/if}
+
+                    <!-- Pre-reserved DOI -->
+                    {#if responseData?.prereserved_doi}
+                        <div class="bg-purple-50 border border-purple-200 rounded-md p-4 mb-4">
+                            <p class="text-purple-900 text-sm font-medium mb-1">Pre-reserved DOI:</p>
+                            <p class="text-purple-800 text-sm font-mono">{responseData.prereserved_doi}</p>
+                            <p class="text-purple-700 text-xs mt-1">This DOI will be activated when you publish the deposition.</p>
+                        </div>
+                    {/if}
+
+                    <!-- Links -->
+                    {#if responseData?.links && Object.keys(responseData.links).length > 0}
+                        <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                            <p class="text-blue-900 text-sm font-medium mb-2">Quick Links:</p>
+                            <div class="flex flex-wrap gap-2">
+                                {#each Object.entries(responseData.links) as [label, url]}
+                                    {#if url}
+                                        <a
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        >
+                                            {label}
+                                            <svg class="ml-1.5 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                            </svg>
+                                        </a>
+                                    {/if}
+                                {/each}
+                            </div>
                         </div>
                     {/if}
 
@@ -202,7 +314,7 @@
                         <div class="space-y-4">
                             {#each formSchema.fields as field}
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <label for={field.name} class="block text-sm font-medium text-gray-700 mb-1">
                                         {field.label}
                                         {#if field.required}
                                             <span class="text-red-500">*</span>
@@ -212,6 +324,7 @@
                                     {#if field.type === 'select' && field.multiple}
                                         <!-- Multiple Select -->
                                         <select
+                                            id={field.name}
                                             multiple
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             onchange={(e) => {
@@ -229,6 +342,7 @@
                                     {:else if field.type === 'select'}
                                         <!-- Single Select -->
                                         <select
+                                            id={field.name}
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             value={formData[field.name] || ''}
                                             onchange={(e) => handleFieldChange(field.name, (e.target as HTMLSelectElement).value)}
@@ -242,6 +356,7 @@
                                         <!-- Checkbox -->
                                         <div class="flex items-center">
                                             <input
+                                                id={field.name}
                                                 type="checkbox"
                                                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                                 checked={formData[field.name] || false}
@@ -249,9 +364,37 @@
                                             />
                                             <span class="ml-2 text-sm text-gray-700">{field.label}</span>
                                         </div>
+                                    {:else if field.name === 'zenodo_token'}
+                                        <!-- Token Input with Clear Button -->
+                                        <div class="relative">
+                                            <input
+                                                id={field.name}
+                                                type="password"
+                                                class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                value={formData[field.name] || ''}
+                                                oninput={(e) => handleFieldChange(field.name, (e.target as HTMLInputElement).value)}
+                                                required={field.required}
+                                                disabled={!!(tokenFromStorage && !tokenCleared && formData[field.name] === tokenFromStorage)}
+                                                placeholder={tokenFromStorage && !tokenCleared && formData[field.name] === tokenFromStorage ? 'Token loaded from storage' : 'Enter Zenodo token'}
+                                            />
+                                            {#if tokenFromStorage && !tokenCleared && formData[field.name] === tokenFromStorage}
+                                                <button
+                                                    type="button"
+                                                    onclick={clearToken}
+                                                    class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-600 focus:outline-none focus:text-red-600"
+                                                    title="Clear token"
+                                                    aria-label="Clear token"
+                                                >
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            {/if}
+                                        </div>
                                     {:else if field.type === 'password'}
                                         <!-- Password Input -->
                                         <input
+                                            id={field.name}
                                             type="password"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             value={formData[field.name] || ''}
@@ -261,6 +404,7 @@
                                     {:else if field.type === 'textarea'}
                                         <!-- Textarea -->
                                         <textarea
+                                            id={field.name}
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             rows="4"
                                             value={formData[field.name] || ''}
@@ -270,6 +414,7 @@
                                     {:else}
                                         <!-- Text Input -->
                                         <input
+                                            id={field.name}
                                             type="text"
                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             value={formData[field.name] || ''}
