@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd"
+                 xmlns:gco="http://www.isotc211.org/2005/gco"
+                 xmlns:gts="http://www.isotc211.org/2005/gts"
+                 xmlns:gml="http://www.opengis.net/gml"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd">
+  
+  <!-- File Identifier -->
+  <gmd:fileIdentifier>
+    <gco:CharacterString>{{ entry.uuid }}</gco:CharacterString>
+  </gmd:fileIdentifier>
+  
+  <!-- Language -->
+  <gmd:language>
+    <gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng">eng</gmd:LanguageCode>
+  </gmd:language>
+  
+  <!-- Character Set -->
+  <gmd:characterSet>
+    <gmd:MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8">utf8</gmd:MD_CharacterSetCode>
+  </gmd:characterSet>
+  
+  <!-- Parent Identifier (if part of a group) -->
+  {% if entry.groups and entry.groups|length > 0 %}
+  <gmd:parentIdentifier>
+    <gco:CharacterString>{{ entry.groups[0].uuid }}</gco:CharacterString>
+  </gmd:parentIdentifier>
+  {% endif %}
+  
+  <!-- Hierarchy Level -->
+  <gmd:hierarchyLevel>
+    <gmd:MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+  </gmd:hierarchyLevel>
+  
+  <!-- Contact Information (Metadata Creator) -->
+  <gmd:contact>
+    <gmd:CI_ResponsibleParty>
+      <gmd:organisationName>
+        <gco:CharacterString>MetaCatalog</gco:CharacterString>
+      </gmd:organisationName>
+      <gmd:role>
+        <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+      </gmd:role>
+    </gmd:CI_ResponsibleParty>
+  </gmd:contact>
+  
+  <!-- Date Stamp -->
+  <gmd:dateStamp>
+    <gco:DateTime>{{ entry.lastUpdate or entry.publication }}</gco:DateTime>
+  </gmd:dateStamp>
+  
+  <!-- Metadata Standard Name -->
+  <gmd:metadataStandardName>
+    <gco:CharacterString>ISO 19115 Geographic Information - Metadata</gco:CharacterString>
+  </gmd:metadataStandardName>
+  
+  <!-- Metadata Standard Version -->
+  <gmd:metadataStandardVersion>
+    <gco:CharacterString>ISO 19115:2003/Cor.1:2006</gco:CharacterString>
+  </gmd:metadataStandardVersion>
+  
+  <!-- Identification Information -->
+  <gmd:identificationInfo>
+    <gmd:MD_DataIdentification>
+      
+      <!-- Citation -->
+      <gmd:citation>
+        <gmd:CI_Citation>
+          <gmd:title>
+            <gco:CharacterString>{{ entry.title }}</gco:CharacterString>
+          </gmd:title>
+          {% if entry.publication %}
+          <gmd:date>
+            <gmd:CI_Date>
+              <gmd:date>
+                <gco:Date>{{ entry.publication.strftime('%Y-%m-%d') }}</gco:Date>
+              </gmd:date>
+              <gmd:dateType>
+                <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
+              </gmd:dateType>
+            </gmd:CI_Date>
+          </gmd:date>
+          {% endif %}
+          {% if entry.lastUpdate %}
+          <gmd:date>
+            <gmd:CI_Date>
+              <gmd:date>
+                <gco:Date>{{ entry.lastUpdate.strftime('%Y-%m-%d') }}</gco:Date>
+              </gmd:date>
+              <gmd:dateType>
+                <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="revision">revision</gmd:CI_DateTypeCode>
+              </gmd:dateType>
+            </gmd:CI_Date>
+          </gmd:date>
+          {% endif %}
+          <gmd:identifier>
+            <gmd:MD_Identifier>
+              <gmd:code>
+                <gco:CharacterString>{{ entry.uuid }}</gco:CharacterString>
+              </gmd:code>
+              {% if entry.external_id %}
+              <gmd:authority>
+                <gmd:CI_Citation>
+                  <gmd:title>
+                    <gco:CharacterString>External ID</gco:CharacterString>
+                  </gmd:title>
+                </gmd:CI_Citation>
+              </gmd:authority>
+              {% endif %}
+            </gmd:MD_Identifier>
+          </gmd:identifier>
+          {% if entry.external_id %}
+          <gmd:identifier>
+            <gmd:MD_Identifier>
+              <gmd:code>
+                <gco:CharacterString>{{ entry.external_id }}</gco:CharacterString>
+              </gmd:code>
+            </gmd:MD_Identifier>
+          </gmd:identifier>
+          {% endif %}
+          {% if entry.version %}
+          <gmd:edition>
+            <gco:CharacterString>{{ entry.version }}</gco:CharacterString>
+          </gmd:edition>
+          {% endif %}
+        </gmd:CI_Citation>
+      </gmd:citation>
+      
+      <!-- Abstract -->
+      <gmd:abstract>
+        <gco:CharacterString>{{ entry.abstract }}</gco:CharacterString>
+      </gmd:abstract>
+      
+      <!-- Purpose -->
+      {% if entry.comment %}
+      <gmd:purpose>
+        <gco:CharacterString>{{ entry.comment }}</gco:CharacterString>
+      </gmd:purpose>
+      {% endif %}
+      
+      <!-- Status -->
+      <gmd:status>
+        <gmd:MD_ProgressCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ProgressCode" codeListValue="{% if entry.is_partial %}onGoing{% else %}completed{% endif %}">{% if entry.is_partial %}onGoing{% else %}completed{% endif %}</gmd:MD_ProgressCode>
+      </gmd:status>
+      
+      <!-- Point of Contact -->
+      {% if entry.author %}
+      <gmd:pointOfContact>
+        <gmd:CI_ResponsibleParty>
+          <gmd:individualName>
+            {% if entry.author.is_organisation %}
+            <gco:CharacterString>{{ entry.author.organisation_name or 'Organisation' }}{% if entry.author.organisation_abbrev %} ({{ entry.author.organisation_abbrev }}){% endif %}</gco:CharacterString>
+            {% else %}
+            <gco:CharacterString>{{ entry.author.first_name }} {{ entry.author.last_name }}</gco:CharacterString>
+            {% endif %}
+          </gmd:individualName>
+          {% if entry.author.affiliation %}
+          <gmd:organisationName>
+            <gco:CharacterString>{{ entry.author.affiliation }}</gco:CharacterString>
+          </gmd:organisationName>
+          {% endif %}
+          {% if entry.author.orcid %}
+          <gmd:contactInfo>
+            <gmd:CI_Contact>
+              <gmd:onlineResource>
+                <gmd:CI_OnlineResource>
+                  <gmd:linkage>
+                    <gmd:URL>https://orcid.org/{{ entry.author.orcid }}</gmd:URL>
+                  </gmd:linkage>
+                </gmd:CI_OnlineResource>
+              </gmd:onlineResource>
+            </gmd:CI_Contact>
+          </gmd:contactInfo>
+          {% endif %}
+          <gmd:role>
+            <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+          </gmd:role>
+        </gmd:CI_ResponsibleParty>
+      </gmd:pointOfContact>
+      {% endif %}
+      
+      <!-- Resource Maintenance -->
+      <gmd:resourceMaintenance>
+        <gmd:MD_MaintenanceInformation>
+          <gmd:maintenanceAndUpdateFrequency>
+            <gmd:MD_MaintenanceFrequencyCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_MaintenanceFrequencyCode" codeListValue="asNeeded">asNeeded</gmd:MD_MaintenanceFrequencyCode>
+          </gmd:maintenanceAndUpdateFrequency>
+        </gmd:MD_MaintenanceInformation>
+      </gmd:resourceMaintenance>
+      
+      <!-- Graphic Overview (if available) -->
+      
+      <!-- Resource Format -->
+      {% if entry.datasource and entry.datasource.type %}
+      <gmd:resourceFormat>
+        <gmd:MD_Format>
+          <gmd:name>
+            <gco:CharacterString>{{ entry.datasource.type.title or entry.datasource.type.name }}</gco:CharacterString>
+          </gmd:name>
+          {% if entry.datasource.encoding %}
+          <gmd:version>
+            <gco:CharacterString>{{ entry.datasource.encoding }}</gco:CharacterString>
+          </gmd:version>
+          {% endif %}
+        </gmd:MD_Format>
+      </gmd:resourceFormat>
+      {% endif %}
+      
+      <!-- Descriptive Keywords -->
+      {% if entry.keywords or entry.variable %}
+      <gmd:descriptiveKeywords>
+        <gmd:MD_Keywords>
+          {% if entry.keywords %}
+          {% for keyword in entry.keywords %}
+          <gmd:keyword>
+            <gco:CharacterString>{{ keyword.value }}</gco:CharacterString>
+          </gmd:keyword>
+          {% endfor %}
+          {% endif %}
+          {% if entry.variable %}
+          <gmd:keyword>
+            <gco:CharacterString>{{ entry.variable.name }} ({{ entry.variable.symbol }})</gco:CharacterString>
+          </gmd:keyword>
+          {% endif %}
+          {% if entry.keywords and entry.keywords|length > 0 and entry.keywords[0].thesaurus %}
+          <gmd:type>
+            <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
+          </gmd:type>
+          <gmd:thesaurusName>
+            <gmd:CI_Citation>
+              <gmd:title>
+                <gco:CharacterString>{{ entry.keywords[0].thesaurus.title }}</gco:CharacterString>
+              </gmd:title>
+              <gmd:date>
+                <gmd:CI_Date>
+                  <gmd:date>
+                    <gco:Date>2024-01-01</gco:Date>
+                  </gmd:date>
+                  <gmd:dateType>
+                    <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
+                  </gmd:dateType>
+                </gmd:CI_Date>
+              </gmd:date>
+              {% if entry.keywords[0].thesaurus.url %}
+              <gmd:citedResponsibleParty>
+                <gmd:CI_ResponsibleParty>
+                  <gmd:organisationName>
+                    <gco:CharacterString>{{ entry.keywords[0].thesaurus.organisation }}</gco:CharacterString>
+                  </gmd:organisationName>
+                  <gmd:contactInfo>
+                    <gmd:CI_Contact>
+                      <gmd:onlineResource>
+                        <gmd:CI_OnlineResource>
+                          <gmd:linkage>
+                            <gmd:URL>{{ entry.keywords[0].thesaurus.url }}</gmd:URL>
+                          </gmd:linkage>
+                        </gmd:CI_OnlineResource>
+                      </gmd:onlineResource>
+                    </gmd:CI_Contact>
+                  </gmd:contactInfo>
+                </gmd:CI_ResponsibleParty>
+              </gmd:citedResponsibleParty>
+              {% endif %}
+            </gmd:CI_Citation>
+          </gmd:thesaurusName>
+          {% endif %}
+        </gmd:MD_Keywords>
+      </gmd:descriptiveKeywords>
+      {% endif %}
+      
+      <!-- Resource Constraints (License) -->
+      {% if entry.license %}
+      <gmd:resourceConstraints>
+        <gmd:MD_LegalConstraints>
+          <gmd:accessConstraints>
+            <gmd:MD_RestrictionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_RestrictionCode" codeListValue="{% if entry.embargo %}restricted{% else %}otherRestrictions{% endif %}">{% if entry.embargo %}restricted{% else %}otherRestrictions{% endif %}</gmd:MD_RestrictionCode>
+          </gmd:accessConstraints>
+          {% if entry.license.link %}
+          <gmd:otherConstraints>
+            <gco:CharacterString>{{ entry.license.title or entry.license.short_title }} - {{ entry.license.link }}</gco:CharacterString>
+          </gmd:otherConstraints>
+          {% else %}
+          <gmd:otherConstraints>
+            <gco:CharacterString>{{ entry.license.title or entry.license.short_title }}</gco:CharacterString>
+          </gmd:otherConstraints>
+          {% endif %}
+        </gmd:MD_LegalConstraints>
+      </gmd:resourceConstraints>
+      {% endif %}
+      
+      <!-- Spatial Representation Type -->
+      {% if entry.location or entry.datasource and entry.datasource.spatial_scale %}
+      <gmd:spatialRepresentationType>
+        <gmd:MD_SpatialRepresentationTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="{% if entry.datasource and entry.datasource.spatial_scale %}grid{% else %}vector{% endif %}">{% if entry.datasource and entry.datasource.spatial_scale %}grid{% else %}vector{% endif %}</gmd:MD_SpatialRepresentationTypeCode>
+      </gmd:spatialRepresentationType>
+      {% endif %}
+      
+      <!-- Spatial Resolution -->
+      {% if entry.datasource and entry.datasource.spatial_scale %}
+      <gmd:spatialResolution>
+        <gmd:MD_Resolution>
+          <gmd:equivalentScale>
+            <gmd:MD_RepresentativeFraction>
+              <gmd:denominator>
+                <gco:Integer>{{ entry.datasource.spatial_scale.resolution }}</gco:Integer>
+              </gmd:denominator>
+            </gmd:MD_RepresentativeFraction>
+          </gmd:equivalentScale>
+        </gmd:MD_Resolution>
+      </gmd:spatialResolution>
+      {% endif %}
+      
+      <!-- Language -->
+      <gmd:language>
+        <gmd:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng">eng</gmd:LanguageCode>
+      </gmd:language>
+      
+      <!-- Topic Category -->
+      <gmd:topicCategory>
+        <gmd:MD_TopicCategoryCode>geoscientificInformation</gmd:MD_TopicCategoryCode>
+      </gmd:topicCategory>
+      
+      <!-- Extent -->
+      <gmd:extent>
+        <gmd:EX_Extent>
+          
+          <!-- Geographic Extent -->
+          {% if entry.location %}
+          <gmd:geographicElement>
+            <gmd:EX_GeographicBoundingBox>
+              <gmd:westBoundLongitude>
+                <gco:Decimal>{{ entry.location.coordinates[0] }}</gco:Decimal>
+              </gmd:westBoundLongitude>
+              <gmd:eastBoundLongitude>
+                <gco:Decimal>{{ entry.location.coordinates[0] }}</gco:Decimal>
+              </gmd:eastBoundLongitude>
+              <gmd:southBoundLatitude>
+                <gco:Decimal>{{ entry.location.coordinates[1] }}</gco:Decimal>
+              </gmd:southBoundLatitude>
+              <gmd:northBoundLatitude>
+                <gco:Decimal>{{ entry.location.coordinates[1] }}</gco:Decimal>
+              </gmd:northBoundLatitude>
+            </gmd:EX_GeographicBoundingBox>
+          </gmd:geographicElement>
+          {% elif entry.datasource and entry.datasource.spatial_scale and entry.datasource.spatial_scale.extent %}
+          <gmd:geographicElement>
+            <gmd:EX_GeographicBoundingBox>
+              {% set coords = entry.datasource.spatial_scale.extent.coordinates[0] %}
+              {% set lons = coords|map(attribute='0')|list %}
+              {% set lats = coords|map(attribute='1')|list %}
+              <gmd:westBoundLongitude>
+                <gco:Decimal>{{ lons|min }}</gco:Decimal>
+              </gmd:westBoundLongitude>
+              <gmd:eastBoundLongitude>
+                <gco:Decimal>{{ lons|max }}</gco:Decimal>
+              </gmd:eastBoundLongitude>
+              <gmd:southBoundLatitude>
+                <gco:Decimal>{{ lats|min }}</gco:Decimal>
+              </gmd:southBoundLatitude>
+              <gmd:northBoundLatitude>
+                <gco:Decimal>{{ lats|max }}</gco:Decimal>
+              </gmd:northBoundLatitude>
+            </gmd:EX_GeographicBoundingBox>
+          </gmd:geographicElement>
+          {% endif %}
+          
+          <!-- Temporal Extent -->
+          {% if entry.datasource and entry.datasource.temporal_scale %}
+          <gmd:temporalElement>
+            <gmd:EX_TemporalExtent>
+              <gmd:extent>
+                <gml:TimePeriod gml:id="temporalExtent">
+                  <gml:beginPosition>{{ entry.datasource.temporal_scale.observation_start.strftime('%Y-%m-%dT%H:%M:%S') }}</gml:beginPosition>
+                  <gml:endPosition>{{ entry.datasource.temporal_scale.observation_end.strftime('%Y-%m-%dT%H:%M:%S') }}</gml:endPosition>
+                </gml:TimePeriod>
+              </gmd:extent>
+            </gmd:EX_TemporalExtent>
+          </gmd:temporalElement>
+          {% endif %}
+          
+        </gmd:EX_Extent>
+      </gmd:extent>
+      
+      <!-- Additional Contributors -->
+      {% if entry.coAuthors %}
+      {% for coAuthor in entry.coAuthors %}
+      <gmd:pointOfContact>
+        <gmd:CI_ResponsibleParty>
+          <gmd:individualName>
+            {% if coAuthor.is_organisation %}
+            <gco:CharacterString>{{ coAuthor.organisation_name or 'Organisation' }}{% if coAuthor.organisation_abbrev %} ({{ coAuthor.organisation_abbrev }}){% endif %}</gco:CharacterString>
+            {% else %}
+            <gco:CharacterString>{{ coAuthor.first_name }} {{ coAuthor.last_name }}</gco:CharacterString>
+            {% endif %}
+          </gmd:individualName>
+          {% if coAuthor.affiliation %}
+          <gmd:organisationName>
+            <gco:CharacterString>{{ coAuthor.affiliation }}</gco:CharacterString>
+          </gmd:organisationName>
+          {% endif %}
+          {% if coAuthor.orcid %}
+          <gmd:contactInfo>
+            <gmd:CI_Contact>
+              <gmd:onlineResource>
+                <gmd:CI_OnlineResource>
+                  <gmd:linkage>
+                    <gmd:URL>https://orcid.org/{{ coAuthor.orcid }}</gmd:URL>
+                  </gmd:linkage>
+                </gmd:CI_OnlineResource>
+              </gmd:onlineResource>
+            </gmd:CI_Contact>
+          </gmd:contactInfo>
+          {% endif %}
+          <gmd:role>
+            <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="author">author</gmd:CI_RoleCode>
+          </gmd:role>
+        </gmd:CI_ResponsibleParty>
+      </gmd:pointOfContact>
+      {% endfor %}
+      {% endif %}
+      
+    </gmd:MD_DataIdentification>
+  </gmd:identificationInfo>
+  
+  <!-- Distribution Information -->
+  {% if entry.datasource %}
+  <gmd:distributionInfo>
+    <gmd:MD_Distribution>
+      <gmd:distributionFormat>
+        <gmd:MD_Format>
+          <gmd:name>
+            <gco:CharacterString>{{ entry.datasource.type.title if entry.datasource.type else 'Unknown' }}</gco:CharacterString>
+          </gmd:name>
+          {% if entry.datasource.encoding %}
+          <gmd:version>
+            <gco:CharacterString>{{ entry.datasource.encoding }}</gco:CharacterString>
+          </gmd:version>
+          {% endif %}
+        </gmd:MD_Format>
+      </gmd:distributionFormat>
+      <gmd:transferOptions>
+        <gmd:MD_DigitalTransferOptions>
+          {% if entry.datasource.path %}
+          <gmd:onLine>
+            <gmd:CI_OnlineResource>
+              <gmd:linkage>
+                <gmd:URL>{{ entry.datasource.path }}</gmd:URL>
+              </gmd:linkage>
+              <gmd:protocol>
+                <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+              </gmd:protocol>
+              <gmd:name>
+                <gco:CharacterString>{{ entry.title }}</gco:CharacterString>
+              </gmd:name>
+              <gmd:description>
+                <gco:CharacterString>Data source for {{ entry.title }}</gco:CharacterString>
+              </gmd:description>
+            </gmd:CI_OnlineResource>
+          </gmd:onLine>
+          {% endif %}
+        </gmd:MD_DigitalTransferOptions>
+      </gmd:transferOptions>
+    </gmd:MD_Distribution>
+  </gmd:distributionInfo>
+  {% endif %}
+  
+  <!-- Data Quality Information -->
+  {% if entry.variable %}
+  <gmd:dataQualityInfo>
+    <gmd:DQ_DataQuality>
+      <gmd:scope>
+        <gmd:DQ_Scope>
+          <gmd:level>
+            <gmd:MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+          </gmd:level>
+        </gmd:DQ_Scope>
+      </gmd:scope>
+      <gmd:report>
+        <gmd:DQ_DomainConsistency>
+          <gmd:result>
+            <gmd:DQ_ConformanceResult>
+              <gmd:specification>
+                <gmd:CI_Citation>
+                  <gmd:title>
+                    <gco:CharacterString>Variable: {{ entry.variable.name }} ({{ entry.variable.symbol }})</gco:CharacterString>
+                  </gmd:title>
+                  {% if entry.variable.unit %}
+                  <gmd:alternateTitle>
+                    <gco:CharacterString>Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% if entry.variable.unit.si %} - SI: {{ entry.variable.unit.si }}{% endif %}</gco:CharacterString>
+                  </gmd:alternateTitle>
+                  {% endif %}
+                  {% if entry.variable.column_names %}
+                  <gmd:otherCitationDetails>
+                    <gco:CharacterString>Column names: {{ entry.variable.column_names|join(', ') }}</gco:CharacterString>
+                  </gmd:otherCitationDetails>
+                  {% endif %}
+                </gmd:CI_Citation>
+              </gmd:specification>
+              <gmd:explanation>
+                <gco:CharacterString>Measured variable information: {{ entry.variable.name }} ({{ entry.variable.symbol }}){% if entry.variable.unit %} - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% endif %}{% if entry.variable.column_names %} - Columns: {{ entry.variable.column_names|join(', ') }}{% endif %}</gco:CharacterString>
+              </gmd:explanation>
+              <gmd:pass>
+                <gco:Boolean>true</gco:Boolean>
+              </gmd:pass>
+            </gmd:DQ_ConformanceResult>
+          </gmd:result>
+        </gmd:DQ_DomainConsistency>
+      </gmd:report>
+    </gmd:DQ_DataQuality>
+  </gmd:dataQualityInfo>
+  {% endif %}
+  
+  <!-- Metadata Extension Information (MetaCatalog Attribution) -->
+  <gmd:metadataExtensionInformation>
+    <gmd:MD_MetadataExtensionInformation>
+      <gmd:extensionOnLineResource>
+        <gmd:CI_OnlineResource>
+          <gmd:linkage>
+            <gmd:URL>http://metacatalog.org</gmd:URL>
+          </gmd:linkage>
+          <gmd:name>
+            <gco:CharacterString>MetaCatalog</gco:CharacterString>
+          </gmd:name>
+          <gmd:description>
+            <gco:CharacterString>This metadata record was generated by MetaCatalog metadata management system</gco:CharacterString>
+          </gmd:description>
+        </gmd:CI_OnlineResource>
+      </gmd:extensionOnLineResource>
+    </gmd:MD_MetadataExtensionInformation>
+  </gmd:metadataExtensionInformation>
+  
+  <!-- Additional Metadata: Details -->
+  {% if entry.details %}
+  {% for detail in entry.details %}
+  <gmd:additionalMetadata>
+    <gco:CharacterString>MetaCatalog Detail [{{ detail.key }}]: {% if detail.title %}{{ detail.title }} - {% endif %}{% if detail.description %}{{ detail.description }} - {% endif %}{% if detail.value %}{{ detail.value|tojson }}{% else %}{{ detail.raw_value|tojson }}{% endif %}</gco:CharacterString>
+  </gmd:additionalMetadata>
+  {% endfor %}
+  {% endif %}
+  
+  <!-- Additional Metadata: Variable Information -->
+  {% if entry.variable %}
+  <gmd:additionalMetadata>
+    <gco:CharacterString>MetaCatalog Variable: {{ entry.variable.name }} ({{ entry.variable.symbol }}){% if entry.variable.unit %} - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% if entry.variable.unit.si %}, SI: {{ entry.variable.unit.si }}{% endif %}{% endif %}{% if entry.variable.column_names %} - Column names: {{ entry.variable.column_names|join(', ') }}{% endif %}{% if entry.variable.keyword %} - Keyword: {{ entry.variable.keyword.value }}{% if entry.variable.keyword.thesaurus %} (from {{ entry.variable.keyword.thesaurus.title }}){% endif %}{% endif %}</gco:CharacterString>
+  </gmd:additionalMetadata>
+  {% endif %}
+  
+  <!-- Additional Metadata: Citation -->
+  {% if entry.citation %}
+  <gmd:additionalMetadata>
+    <gco:CharacterString>MetaCatalog Citation: {{ entry.citation }}</gco:CharacterString>
+  </gmd:additionalMetadata>
+  {% endif %}
+  
+</gmd:MD_Metadata>
+
