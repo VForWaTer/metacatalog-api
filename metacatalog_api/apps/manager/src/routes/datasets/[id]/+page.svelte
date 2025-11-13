@@ -61,7 +61,7 @@
 						{/if}
 					</div>
 				</div>
-				<div class="flex gap-2">
+				<div class="flex gap-2 relative z-[1000]">
 					<ExportDropdown 
 						entryId={data.dataset.id} 
 						buttonClass="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"

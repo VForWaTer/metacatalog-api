@@ -1,1 +1,15 @@
 @import 'tailwindcss';
+
+/* Ensure Leaflet maps don't interfere with modals and dropdowns */
+/* Leaflet uses z-index 400-700 by default, which conflicts with modals/dropdowns */
+/* Constrain the map container to create an isolated stacking context */
+.leaflet-container {
+    position: relative;
+    z-index: 1 !important;
+    isolation: isolate;
+}
+
+/* Keep Leaflet controls accessible but below modals/dropdowns */
+.leaflet-control {
+    z-index: 10 !important;
+}

@@ -76,7 +76,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
     </button>
-    <div class="dropdown-menu hidden absolute right-0 top-full bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]">
+    <div class="dropdown-menu hidden absolute right-0 top-full bg-white border border-gray-200 rounded-md shadow-lg z-[1000] min-w-[160px]">
         {#each exportFormats as format}
             <a 
                 href={buildApiUrl(`/export/${entryId}/${format.format}`)}

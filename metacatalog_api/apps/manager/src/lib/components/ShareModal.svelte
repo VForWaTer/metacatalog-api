@@ -217,7 +217,7 @@
 {#if isOpen}
     <!-- Modal Backdrop -->
     <div 
-        class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center"
+        class="fixed inset-0 bg-black/30 backdrop-blur-sm z-[1000] flex items-center justify-center"
         onclick={handleBackdropClick}
         onkeydown={handleBackdropClick}
         role="dialog"
