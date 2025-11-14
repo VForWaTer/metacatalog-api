@@ -47,7 +47,7 @@
   
   <!-- Date Stamp -->
   <gmd:dateStamp>
-    <gco:DateTime>{{ entry.lastUpdate or entry.publication }}</gco:DateTime>
+    <gco:DateTime>{{ entry.lastUpdate or entry.publication or entry.created }}</gco:DateTime>
   </gmd:dateStamp>
   
   <!-- Metadata Standard Name -->
