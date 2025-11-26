@@ -47,7 +47,7 @@
   
   <!-- Date Stamp -->
   <gmd:dateStamp>
-    <gco:DateTime>{{ entry.lastUpdate or entry.publication or entry.created }}</gco:DateTime>
+    <gco:DateTime>{{ entry.lastUpdate or entry.publication }}</gco:DateTime>
   </gmd:dateStamp>
   
   <!-- Metadata Standard Name -->
@@ -207,67 +207,53 @@
       </gmd:resourceFormat>
       {% endif %}
       
-      <!-- Descriptive Keywords -->
-      {% if entry.keywords or entry.variable %}
-      <gmd:descriptiveKeywords>
-        <gmd:MD_Keywords>
-          {% if entry.keywords %}
+    <!-- Descriptive Keywords -->
+    <gmd:descriptiveKeywords>
+      <gmd:MD_Keywords>
+        <gmd:keyword>
+          <gco:CharacterString>{{ entry.variable.name }} ({{ entry.variable.symbol }})</gco:CharacterString>
+        </gmd:keyword>
+        {% if entry.keywords %}
           {% for keyword in entry.keywords %}
           <gmd:keyword>
             <gco:CharacterString>{{ keyword.value }}</gco:CharacterString>
           </gmd:keyword>
           {% endfor %}
-          {% endif %}
-          {% if entry.variable %}
-          <gmd:keyword>
-            <gco:CharacterString>{{ entry.variable.name }} ({{ entry.variable.symbol }})</gco:CharacterString>
-          </gmd:keyword>
-          {% endif %}
-          {% if entry.keywords and entry.keywords|length > 0 and entry.keywords[0].thesaurus %}
-          <gmd:type>
-            <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
-          </gmd:type>
-          <gmd:thesaurusName>
-            <gmd:CI_Citation>
-              <gmd:title>
-                <gco:CharacterString>{{ entry.keywords[0].thesaurus.title }}</gco:CharacterString>
-              </gmd:title>
-              <gmd:date>
-                <gmd:CI_Date>
-                  <gmd:date>
-                    <gco:Date>2024-01-01</gco:Date>
-                  </gmd:date>
-                  <gmd:dateType>
-                    <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
-                  </gmd:dateType>
-                </gmd:CI_Date>
-              </gmd:date>
-              {% if entry.keywords[0].thesaurus.url %}
-              <gmd:citedResponsibleParty>
-                <gmd:CI_ResponsibleParty>
-                  <gmd:organisationName>
-                    <gco:CharacterString>{{ entry.keywords[0].thesaurus.organisation }}</gco:CharacterString>
-                  </gmd:organisationName>
-                  <gmd:contactInfo>
-                    <gmd:CI_Contact>
-                      <gmd:onlineResource>
-                        <gmd:CI_OnlineResource>
-                          <gmd:linkage>
-                            <gmd:URL>{{ entry.keywords[0].thesaurus.url }}</gmd:URL>
-                          </gmd:linkage>
-                        </gmd:CI_OnlineResource>
-                      </gmd:onlineResource>
-                    </gmd:CI_Contact>
-                  </gmd:contactInfo>
-                </gmd:CI_ResponsibleParty>
-              </gmd:citedResponsibleParty>
-              {% endif %}
-            </gmd:CI_Citation>
-          </gmd:thesaurusName>
-          {% endif %}
-        </gmd:MD_Keywords>
-      </gmd:descriptiveKeywords>
-      {% endif %}
+        {% endif %}
+        {% if entry.keywords|length > 0 and entry.keywords[0].thesaurus %}
+        <gmd:type>
+          <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
+        </gmd:type>
+        <gmd:thesaurusName>
+          <gmd:CI_Citation>
+            <gmd:title>
+              <gco:CharacterString>{{ entry.keywords[0].thesaurus.title }}</gco:CharacterString>
+            </gmd:title>
+            {% if entry.keywords[0].thesaurus.url %}
+            <gmd:citedResponsibleParty>
+              <gmd:CI_ResponsibleParty>
+                <gmd:organisationName>
+                  <gco:CharacterString>{{ entry.keywords[0].thesaurus.organisation }}</gco:CharacterString>
+                </gmd:organisationName>
+                <gmd:contactInfo>
+                  <gmd:CI_Contact>
+                    <gmd:onlineResource>
+                      <gmd:CI_OnlineResource>
+                        <gmd:linkage>
+                          <gmd:URL>{{ entry.keywords[0].thesaurus.url }}</gmd:URL>
+                        </gmd:linkage>
+                      </gmd:CI_OnlineResource>
+                    </gmd:onlineResource>
+                  </gmd:CI_Contact>
+                </gmd:contactInfo>
+              </gmd:CI_ResponsibleParty>
+            </gmd:citedResponsibleParty>
+            {% endif %}
+          </gmd:CI_Citation>
+        </gmd:thesaurusName>
+        {% endif %}
+      </gmd:MD_Keywords>
+    </gmd:descriptiveKeywords>
       
       <!-- Resource Constraints (License) -->
       {% if entry.license %}
@@ -322,28 +308,12 @@
       </gmd:topicCategory>
       
       <!-- Extent -->
+      {% if (entry.datasource and entry.datasource.spatial_scale and entry.datasource.spatial_scale.extent) or entry.location or (entry.datasource and entry.datasource.temporal_scale) %}
       <gmd:extent>
         <gmd:EX_Extent>
           
           <!-- Geographic Extent -->
-          {% if entry.location %}
-          <gmd:geographicElement>
-            <gmd:EX_GeographicBoundingBox>
-              <gmd:westBoundLongitude>
-                <gco:Decimal>{{ entry.location.coordinates[0] }}</gco:Decimal>
-              </gmd:westBoundLongitude>
-              <gmd:eastBoundLongitude>
-                <gco:Decimal>{{ entry.location.coordinates[0] }}</gco:Decimal>
-              </gmd:eastBoundLongitude>
-              <gmd:southBoundLatitude>
-                <gco:Decimal>{{ entry.location.coordinates[1] }}</gco:Decimal>
-              </gmd:southBoundLatitude>
-              <gmd:northBoundLatitude>
-                <gco:Decimal>{{ entry.location.coordinates[1] }}</gco:Decimal>
-              </gmd:northBoundLatitude>
-            </gmd:EX_GeographicBoundingBox>
-          </gmd:geographicElement>
-          {% elif entry.datasource and entry.datasource.spatial_scale and entry.datasource.spatial_scale.extent %}
+          {% if entry.datasource and entry.datasource.spatial_scale and entry.datasource.spatial_scale.extent %}
           <gmd:geographicElement>
             <gmd:EX_GeographicBoundingBox>
               {% set coords = entry.datasource.spatial_scale.extent.coordinates[0] %}
@@ -360,6 +330,23 @@
               </gmd:southBoundLatitude>
               <gmd:northBoundLatitude>
                 <gco:Decimal>{{ lats|max }}</gco:Decimal>
+              </gmd:northBoundLatitude>
+            </gmd:EX_GeographicBoundingBox>
+          </gmd:geographicElement>
+          {% elif entry.location %}
+          <gmd:geographicElement>
+            <gmd:EX_GeographicBoundingBox>
+              <gmd:westBoundLongitude>
+                <gco:Decimal>{{ entry.location.coordinates[0] }}</gco:Decimal>
+              </gmd:westBoundLongitude>
+              <gmd:eastBoundLongitude>
+                <gco:Decimal>{{ entry.location.coordinates[0] }}</gco:Decimal>
+              </gmd:eastBoundLongitude>
+              <gmd:southBoundLatitude>
+                <gco:Decimal>{{ entry.location.coordinates[1] }}</gco:Decimal>
+              </gmd:southBoundLatitude>
+              <gmd:northBoundLatitude>
+                <gco:Decimal>{{ entry.location.coordinates[1] }}</gco:Decimal>
               </gmd:northBoundLatitude>
             </gmd:EX_GeographicBoundingBox>
           </gmd:geographicElement>
@@ -381,6 +368,7 @@
           
         </gmd:EX_Extent>
       </gmd:extent>
+      {% endif %}
       
       <!-- Additional Contributors -->
       {% if entry.coAuthors %}
@@ -485,11 +473,9 @@
                   <gmd:title>
                     <gco:CharacterString>Variable: {{ entry.variable.name }} ({{ entry.variable.symbol }})</gco:CharacterString>
                   </gmd:title>
-                  {% if entry.variable.unit %}
                   <gmd:alternateTitle>
                     <gco:CharacterString>Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% if entry.variable.unit.si %} - SI: {{ entry.variable.unit.si }}{% endif %}</gco:CharacterString>
                   </gmd:alternateTitle>
-                  {% endif %}
                   {% if entry.variable.column_names %}
                   <gmd:otherCitationDetails>
                     <gco:CharacterString>Column names: {{ entry.variable.column_names|join(', ') }}</gco:CharacterString>
@@ -498,7 +484,7 @@
                 </gmd:CI_Citation>
               </gmd:specification>
               <gmd:explanation>
-                <gco:CharacterString>Measured variable information: {{ entry.variable.name }} ({{ entry.variable.symbol }}){% if entry.variable.unit %} - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% endif %}{% if entry.variable.column_names %} - Columns: {{ entry.variable.column_names|join(', ') }}{% endif %}</gco:CharacterString>
+                <gco:CharacterString>Measured variable information: {{ entry.variable.name }} ({{ entry.variable.symbol }}) - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% if entry.variable.column_names %} - Columns: {{ entry.variable.column_names|join(', ') }}{% endif %}</gco:CharacterString>
               </gmd:explanation>
               <gmd:pass>
                 <gco:Boolean>true</gco:Boolean>
@@ -517,7 +503,7 @@
       <gmd:extensionOnLineResource>
         <gmd:CI_OnlineResource>
           <gmd:linkage>
-            <gmd:URL>http://metacatalog.org</gmd:URL>
+            <gmd:URL>https://github.com/vforwater/metacatalog</gmd:URL>
           </gmd:linkage>
           <gmd:name>
             <gco:CharacterString>MetaCatalog</gco:CharacterString>
@@ -534,7 +520,18 @@
   {% if entry.details %}
   {% for detail in entry.details %}
   <gmd:additionalMetadata>
-    <gco:CharacterString>MetaCatalog Detail [{{ detail.key }}]: {% if detail.title %}{{ detail.title }} - {% endif %}{% if detail.description %}{{ detail.description }} - {% endif %}{% if detail.value %}{{ detail.value|tojson }}{% else %}{{ detail.raw_value|tojson }}{% endif %}</gco:CharacterString>
+    <gmd:MD_AdditionalMetadata>
+      <gmd:element>
+        <gmd:MD_MetadataProperty>
+          <gmd:name>
+            <gco:CharacterString>{{ detail.key }}</gco:CharacterString>
+          </gmd:name>
+          <gmd:value>
+            <gco:CharacterString>{{ detail.value|tojson }}</gco:CharacterString>
+          </gmd:value>
+        </gmd:MD_MetadataProperty>
+      </gmd:element>
+    </gmd:MD_AdditionalMetadata>
   </gmd:additionalMetadata>
   {% endfor %}
   {% endif %}
@@ -542,14 +539,36 @@
   <!-- Additional Metadata: Variable Information -->
   {% if entry.variable %}
   <gmd:additionalMetadata>
-    <gco:CharacterString>MetaCatalog Variable: {{ entry.variable.name }} ({{ entry.variable.symbol }}){% if entry.variable.unit %} - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% if entry.variable.unit.si %}, SI: {{ entry.variable.unit.si }}{% endif %}{% endif %}{% if entry.variable.column_names %} - Column names: {{ entry.variable.column_names|join(', ') }}{% endif %}{% if entry.variable.keyword %} - Keyword: {{ entry.variable.keyword.value }}{% if entry.variable.keyword.thesaurus %} (from {{ entry.variable.keyword.thesaurus.title }}){% endif %}{% endif %}</gco:CharacterString>
+    <gmd:MD_AdditionalMetadata>
+      <gmd:element>
+        <gmd:MD_MetadataProperty>
+          <gmd:name>
+            <gco:CharacterString>variable</gco:CharacterString>
+          </gmd:name>
+          <gmd:value>
+            <gco:CharacterString>{{ entry.variable.name }} ({{ entry.variable.symbol }}) - Unit: {{ entry.variable.unit.name }} ({{ entry.variable.unit.symbol }}){% if entry.variable.unit.si %}, SI: {{ entry.variable.unit.si }}{% endif %}{% if entry.variable.column_names %} - Column names: {{ entry.variable.column_names|join(', ') }}{% endif %}{% if entry.variable.keyword %} - Keyword: {{ entry.variable.keyword.value }}{% if entry.variable.keyword.thesaurus %} (from {{ entry.variable.keyword.thesaurus.title }}){% endif %}{% endif %}</gco:CharacterString>
+          </gmd:value>
+        </gmd:MD_MetadataProperty>
+      </gmd:element>
+    </gmd:MD_AdditionalMetadata>
   </gmd:additionalMetadata>
   {% endif %}
   
   <!-- Additional Metadata: Citation -->
   {% if entry.citation %}
   <gmd:additionalMetadata>
-    <gco:CharacterString>MetaCatalog Citation: {{ entry.citation }}</gco:CharacterString>
+    <gmd:MD_AdditionalMetadata>
+      <gmd:element>
+        <gmd:MD_MetadataProperty>
+          <gmd:name>
+            <gco:CharacterString>citation</gco:CharacterString>
+          </gmd:name>
+          <gmd:value>
+            <gco:CharacterString>{{ entry.citation }}</gco:CharacterString>
+          </gmd:value>
+        </gmd:MD_MetadataProperty>
+      </gmd:element>
+    </gmd:MD_AdditionalMetadata>
   </gmd:additionalMetadata>
   {% endif %}
   
