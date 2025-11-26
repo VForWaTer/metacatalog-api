@@ -55,7 +55,15 @@ class Server(BaseSettings):
 
     def cli_cmd(self, asgi_app: str):
         """Start the uvicorn server"""
-        uvicorn.run(asgi_app, host=self.host, port=self.port, root_path=self.root_path, reload=self.reload)
+        reload_excludes = ['**/__pycache__/**', '**/*.pyc', '**/*.pyo'] if self.reload else None
+        uvicorn.run(
+            asgi_app, 
+            host=self.host, 
+            port=self.port, 
+            root_path=self.root_path, 
+            reload=self.reload,
+            reload_excludes=reload_excludes
+        )
 
 logger = logging.getLogger('uvicorn.error')
 

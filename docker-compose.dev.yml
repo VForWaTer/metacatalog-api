@@ -27,6 +27,7 @@ services:
       - 8001:8000  # API
     volumes:
       - ./metacatalog_api:/app/metacatalog_api
+      - ./data/dev/metacatalog-data:/root/metacatalog-data
     depends_on:
       db:
         condition: service_healthy

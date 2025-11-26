@@ -3,6 +3,7 @@ pydantic
 Jinja2
 python-dotenv
 uvicorn
+watchfiles
 pydantic-geojson
 pydantic-settings
 python-multipart
