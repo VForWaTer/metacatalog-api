@@ -187,3 +187,22 @@ def export_zku(entry_id: int, request: Request):
         context={"entry": entries[0]}, 
         media_type='application/xml'
     )
+
+
+@export_router.get('/export/{entry_id}/iso19115')
+def export_iso19115(entry_id: int, request: Request):
+    """
+    ISO 19115
+    Export entry as ISO 19115/ISO 19139 XML format for geographic metadata
+    """
+    entries = core.entries(ids=entry_id)
+    
+    if len(entries) == 0:
+        raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
+    
+    return templates.TemplateResponse(
+        request=request, 
+        name="iso19115.xml", 
+        context={"entry": entries[0]}, 
+        media_type='application/xml'
+    )
