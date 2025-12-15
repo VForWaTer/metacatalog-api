@@ -16,7 +16,7 @@ from metacatalog_api.router.api.share import share_router as api_share_router
 from metacatalog_api.router.api.security import validate_api_key, router as security_router
 
 # Import share providers to register their routes
-from metacatalog_api.router.api.share import download, zenodo  # noqa: F401
+from metacatalog_api.router.api.share import download, zenodo, radar  # noqa: F401
 
 # at first we add the cors middleware to allow everyone to reach the API
 app.add_middleware(

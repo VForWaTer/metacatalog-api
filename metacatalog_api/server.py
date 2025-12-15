@@ -27,6 +27,12 @@ class Server(BaseSettings):
     admin_token: str | None = None
     create_admin_token: bool = False
     validate_admin_token: str | None = None
+    
+    # RADAR OAuth Configuration
+    radar_client_id: str | None = None
+    radar_client_secret: str | None = None
+    radar_base_url: str = "https://test.radar-service.eu/radar/api"
+    radar_redirect_url: str | None = None
 
     @property
     def uri_prefix(self):
