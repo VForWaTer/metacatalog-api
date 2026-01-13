@@ -1,8 +1,10 @@
 import json
 import os
+import secrets
 import tempfile
 import zipfile
 from pathlib import Path
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import Request, HTTPException
@@ -18,16 +20,16 @@ from metacatalog_api.server import server
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / 'templates')
 
 
-async def get_radar_token(
+async def exchange_code_for_token(
+    code: str,
+    state: str,
     client_id: str,
     client_secret: str,
-    username: str,
-    password: str,
     redirect_url: str | None,
     base_url: str
 ) -> dict:
     """
-    Get OAuth access token from RADAR using ROPC flow.
+    Exchange OAuth authorization code for access token using Authorization Code flow.
     Returns: {"access_token": str, "refresh_token": str, "expires_in": int}
     """
     token_url = f"{base_url}/tokens"
@@ -35,8 +37,8 @@ async def get_radar_token(
     payload = {
         "clientId": client_id,
         "clientSecret": client_secret,
-        "userName": username,
-        "userPassword": password
+        "code": code,
+        "state": state
     }
     
     if redirect_url:
@@ -53,7 +55,7 @@ async def get_radar_token(
             if response.status_code == 401:
                 raise HTTPException(
                     status_code=401,
-                    detail="Invalid RADAR credentials. Please check your username and password."
+                    detail="Invalid authorization code or state. Please try authenticating again."
                 )
             
             if response.status_code not in [200, 201]:
@@ -66,7 +68,7 @@ async def get_radar_token(
                 
                 raise HTTPException(
                     status_code=response.status_code,
-                    detail=f"Failed to authenticate with RADAR: {error_detail}"
+                    detail=f"Failed to exchange authorization code for token: {error_detail}"
                 )
             
             return response.json()
@@ -127,6 +129,124 @@ async def refresh_radar_token(
         raise HTTPException(
             status_code=500,
             detail=f"Network error while refreshing RADAR token: {e!s}"
+        ) from e
+
+
+def generate_oauth_state() -> str:
+    """
+    Generate a secure random state parameter for OAuth flow.
+    Used to prevent CSRF attacks.
+    """
+    return secrets.token_urlsafe(32)
+
+
+@share_router.get('/share/radar/authorize')
+def authorize_radar(request: Request):
+    """
+    Initiate OAuth Authorization Code flow.
+    Returns redirect URL to RADAR's OAuth authorize endpoint.
+    """
+    if not server.radar_client_id or not server.radar_redirect_url:
+        raise HTTPException(
+            status_code=500,
+            detail="RADAR OAuth is not configured. Please contact the administrator."
+        )
+    
+    # Generate secure state parameter
+    state = generate_oauth_state()
+    
+    # Store state in session (simple implementation using app state)
+    # In production, use proper session storage (Redis, database, etc.)
+    if not hasattr(request.app.state, 'oauth_states'):
+        request.app.state.oauth_states = {}
+    request.app.state.oauth_states[state] = {
+        'timestamp': json.dumps({'created_at': None})
+    }
+    
+    # Build OAuth authorize URL
+    params = {
+        'client_id': server.radar_client_id,
+        'response_type': 'code',
+        'redirect_uri': server.radar_redirect_url,
+        'state': state
+    }
+    
+    # Use test environment by default (can be overridden by provider config)
+    base_url = server.radar_base_url
+    authorize_url = f"{base_url}/oauth/authorize?{urlencode(params)}"
+    
+    return {"redirect_url": authorize_url}
+
+
+@share_router.get('/share/radar/callback')
+async def callback_radar(request: Request, code: str, state: str | None = None):
+    """
+    Handle OAuth callback from RADAR.
+    Exchange authorization code for access token.
+    """
+    if not code:
+        raise HTTPException(
+            status_code=400,
+            detail="Authorization code not received from RADAR"
+        )
+    
+    if not state:
+        raise HTTPException(
+            status_code=400,
+            detail="State parameter not received from RADAR"
+        )
+    
+    # Verify state parameter exists (basic CSRF protection)
+    if not hasattr(request.app.state, 'oauth_states') or state not in request.app.state.oauth_states:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid state parameter. Possible CSRF attack detected."
+        )
+    
+    # Clean up state (one-time use)
+    del request.app.state.oauth_states[state]
+    
+    # Get RADAR configuration
+    if not server.radar_client_id or not server.radar_client_secret:
+        raise HTTPException(
+            status_code=500,
+            detail="RADAR OAuth is not configured. Please contact the administrator."
+        )
+    
+    # Determine base URL (use test environment by default)
+    base_url = server.radar_base_url
+    
+    try:
+        # Exchange code for access token
+        token_response = await exchange_code_for_token(
+            code=code,
+            state=state,
+            client_id=server.radar_client_id,
+            client_secret=server.radar_client_secret,
+            redirect_url=server.radar_redirect_url,
+            base_url=base_url
+        )
+        
+        access_token = token_response.get('access_token')
+        if not access_token:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to obtain access token from RADAR"
+            )
+        
+        # Return token to frontend for storage
+        return {
+            "access_token": access_token,
+            "refresh_token": token_response.get('refresh_token'),
+            "expires_in": token_response.get('expires_in')
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error during OAuth callback: {e!s}"
         ) from e
 
 
@@ -534,26 +654,18 @@ def get_radar_form(entry_id: int, request: Request):
     entries = core.entries(ids=entry_id)
     if len(entries) == 0:
         raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
-    
-    # Return form with fields
+
+    # Return form with OAuth configuration and fields
     # Note: If RADAR is not configured, we still return the form but it will fail on submit
     # This allows the UI to show the form and provide a better error message
     return {
+        "auth_type": "oauth",
+        "provider_token_key": "radar_token",
+        "oauth_config": {
+            "authorize_endpoint": "/share/radar/authorize",
+            "callback_endpoint": "/share/radar/callback"
+        },
         "fields": [
-            {
-                "name": "radar_username",
-                "type": "text",
-                "label": "RADAR Username",
-                "required": True,
-                "help": "Your RADAR username (must be registered via local RADAR database, not Shibboleth)"
-            },
-            {
-                "name": "radar_password",
-                "type": "password",
-                "label": "RADAR Password",
-                "required": True,
-                "help": "Your RADAR password"
-            },
             {
                 "name": "contract_id",
                 "type": "text",
@@ -588,112 +700,90 @@ async def submit_radar(entry_id: int, request: Request):
     # Parse request body
     try:
         body = await request.json()
-        radar_username = body.get('radar_username')
-        radar_password = body.get('radar_password')
+        access_token = body.get('access_token')
         contract_id = body.get('contract_id')
         workspace_id = body.get('workspace_id')
         use_production = body.get('use_production', False)
     except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         raise HTTPException(
             status_code=400,
-            detail="Invalid request body. Expected JSON with 'radar_username', 'radar_password', 'contract_id', 'workspace_id', and optional 'use_production' fields."
+            detail="Invalid request body. Expected JSON with 'access_token', 'contract_id', 'workspace_id', and optional 'use_production' fields."
         ) from e
-    
+
     # Validate required fields
-    if not radar_username or not radar_password:
-        raise HTTPException(status_code=400, detail="radar_username and radar_password are required")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="access_token is required")
     if not contract_id or not workspace_id:
         raise HTTPException(status_code=400, detail="contract_id and workspace_id are required")
-    
+
     # Get RADAR client credentials from server settings
     if not server.radar_client_id or not server.radar_client_secret:
         raise HTTPException(
             status_code=500,
             detail="RADAR is not configured. Please contact the administrator."
         )
-    
+
     # Determine base URL (test vs production)
     if use_production:
         base_url = "https://www.radar-service.eu/radar/api"
     else:
         base_url = server.radar_base_url
-    
+
     temp_file_path = None
-    
+
     try:
-        # Step 1: Authenticate with RADAR → get access token
-        token_response = await get_radar_token(
-            client_id=server.radar_client_id,
-            client_secret=server.radar_client_secret,
-            username=radar_username,
-            password=radar_password,
-            redirect_url=server.radar_redirect_url,
-            base_url=base_url
-        )
-        
-        access_token = token_response.get('access_token')
-        if not access_token:
-            raise HTTPException(
-                status_code=500,
-                detail="RADAR authentication failed: no access token received"
-            )
-        
-        # Clear password from memory (best effort)
-        radar_password = None
-        del radar_password
-        
-        # Step 2: Validate entry exists
+        # Step 1: Validate entry exists
         entries = core.entries(ids=entry_id)
         if len(entries) == 0:
             raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
-        
+
         entry = entries[0]
-        
-        # Step 3: Create dataset in workspace (minimal metadata)
+
+        # Step 2: Create dataset in workspace (minimal metadata)
         dataset = await create_radar_dataset(
             access_token=access_token,
             workspace_id=workspace_id,
             base_url=base_url
         )
-        
+
         dataset_id = dataset.get('id')
         upload_url = dataset.get('uploadURL')
-        
+
         if not dataset_id:
             raise HTTPException(
                 status_code=500,
                 detail="Failed to create RADAR dataset: no dataset ID returned"
             )
-        
+
         if not upload_url:
             raise HTTPException(
                 status_code=500,
                 detail="Failed to create RADAR dataset: no uploadURL returned"
             )
-        
-        # Step 4: Render ZKU XML from entry
+
+        # Step 3: Render ZKU XML from entry
         zku_xml = render_zku_xml(entry, request)
-        
-        # Step 5: Import ZKU XML metadata (POST /datasets/{id}/metadata)
+
+        # Step 4: Import ZKU XML metadata (POST /datasets/{id}/metadata)
         await import_radar_metadata(
             access_token=access_token,
             dataset_id=dataset_id,
             zku_xml=zku_xml,
             base_url=base_url
         )
-        
-        # Step 6: Create ZIP package in temporary file (on disk, not memory)
+
+        # Step 5: Create ZIP package in temporary file (on disk, not memory)
         temp_file_path, zip_filename = create_radar_package(request, entry_id)
-        
-        # Step 7: Upload ZIP file to dataset (PUT {uploadURL}/package.zip) - stream from disk
+
+        # Step 6: Upload ZIP file to dataset (PUT {uploadURL}/package.zip) - stream from disk
         await upload_to_radar(
             access_token=access_token,
             upload_url=upload_url,
             file_path=temp_file_path,
             filename=zip_filename
         )
-        
-        # Step 8: Clean up temporary ZIP file (delete after successful upload)
+
+        # Step 7: Clean up temporary ZIP file (delete after successful upload)
         try:
             if temp_file_path and os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
