@@ -181,21 +181,21 @@
 
         <SaveButton />
         
-        <!-- API Key Management (Dev Only) -->
-        {#if $settings.isDev}
+        <!-- API Key Management -->
+        {#if $settings.isDev || isLocalhost()}
             <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                <h4 class="text-sm font-medium text-blue-800 mb-2">API Key Management (Development)</h4>
+                <h4 class="text-sm font-medium text-blue-800 mb-2">API Key Management</h4>
                 <div class="space-y-2">
                     <div class="flex items-center space-x-2">
                         <input
-                            type="text"
+                            type="password"
                             bind:value={$apiKey}
                             placeholder="Enter API key"
                             class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <button
                             type="button"
-                            onmousedown={() => validateApiKey($apiKey, 'http://localhost:8001').then(valid => apiKeyStatus.set(valid ? 'valid' : 'invalid'))}
+                            onclick={() => validateApiKey($apiKey, $settings.backendUrl)}
                             class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm"
                         >
                             Validate
