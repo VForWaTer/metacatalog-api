@@ -141,7 +141,7 @@ def generate_oauth_state() -> str:
 
 
 @share_router.get('/share/radar/authorize')
-def authorize_radar(request: Request):
+def authorize_radar(request: Request, entry_id: int | None = None):
     """
     Initiate OAuth Authorization Code flow.
     Returns redirect URL to RADAR's OAuth authorize endpoint.
@@ -160,7 +160,8 @@ def authorize_radar(request: Request):
     if not hasattr(request.app.state, 'oauth_states'):
         request.app.state.oauth_states = {}
     request.app.state.oauth_states[state] = {
-        'timestamp': json.dumps({'created_at': None})
+        'timestamp': json.dumps({'created_at': None}),
+        'entry_id': entry_id  # Store entry_id to redirect back after OAuth
     }
     
     # Build OAuth authorize URL
@@ -203,6 +204,10 @@ async def callback_radar(request: Request, code: str, state: str | None = None):
             detail="Invalid state parameter. Possible CSRF attack detected."
         )
     
+    # Get entry_id from state before cleaning up
+    state_data = request.app.state.oauth_states.get(state, {})
+    entry_id = state_data.get('entry_id')
+    
     # Clean up state (one-time use)
     del request.app.state.oauth_states[state]
     
@@ -234,12 +239,19 @@ async def callback_radar(request: Request, code: str, state: str | None = None):
                 detail="Failed to obtain access token from RADAR"
             )
         
-        # Return token to frontend for storage
-        return {
-            "access_token": access_token,
-            "refresh_token": token_response.get('refresh_token'),
-            "expires_in": token_response.get('expires_in')
-        }
+        # Store token in session (server-side, not visible to browser)
+        request.session['radar_access_token'] = access_token
+        if token_response.get('refresh_token'):
+            request.session['radar_refresh_token'] = token_response.get('refresh_token')
+        if token_response.get('expires_in'):
+            request.session['radar_token_expires_in'] = token_response.get('expires_in')
+        
+        # Redirect to frontend - token is now in session, accessible via session cookie
+        from fastapi.responses import RedirectResponse
+        if entry_id:
+            return RedirectResponse(url=f"/manager/datasets/{entry_id}", status_code=302)
+        else:
+            return RedirectResponse(url="/manager/list", status_code=302)
         
     except HTTPException:
         raise
@@ -697,22 +709,27 @@ async def submit_radar(entry_id: int, request: Request):
     """
     Submit RADAR upload request
     """
+    # Get access token from session (server-side, set during OAuth callback)
+    access_token = request.session.get('radar_access_token')
+    if not access_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Not authenticated with RADAR. Please authenticate first."
+        )
+    
     # Parse request body
     try:
         body = await request.json()
-        access_token = body.get('access_token')
         contract_id = body.get('contract_id')
         workspace_id = body.get('workspace_id')
         use_production = body.get('use_production', False)
     except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
         raise HTTPException(
             status_code=400,
-            detail="Invalid request body. Expected JSON with 'access_token', 'contract_id', 'workspace_id', and optional 'use_production' fields."
+            detail="Invalid request body. Expected JSON with 'contract_id', 'workspace_id', and optional 'use_production' fields."
         ) from e
 
     # Validate required fields
-    if not access_token:
-        raise HTTPException(status_code=400, detail="access_token is required")
     if not contract_id or not workspace_id:
         raise HTTPException(status_code=400, detail="contract_id and workspace_id are required")
 

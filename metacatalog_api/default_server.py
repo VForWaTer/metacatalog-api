@@ -1,6 +1,8 @@
 from fastapi import Request, Depends
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+import secrets
 
 from metacatalog_api.server import app, server
 
@@ -24,6 +26,13 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"]
+)
+
+# Add session middleware for OAuth token storage
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=secrets.token_urlsafe(32),
+    max_age=86400  # 24 hours
 )
 
 # the main page is defined here
