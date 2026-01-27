@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import secrets
 import tempfile
@@ -8,12 +9,15 @@ from urllib.parse import urlencode
 
 import httpx
 from fastapi import Request, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jinja2 import TemplateError
 
 from metacatalog_api import core, models
 from metacatalog_api.router.api.share import share_router
 from metacatalog_api.server import server
+
+logger = logging.getLogger(__name__)
 
 
 # Templates are in router/api/templates/, we're in router/api/share/
@@ -32,27 +36,35 @@ async def exchange_code_for_token(
     Exchange OAuth authorization code for access token using Authorization Code flow.
     Returns: {"access_token": str, "refresh_token": str, "expires_in": int}
     """
-    token_url = f"{base_url}/tokens"
+    token_url = f"{base_url}/oauth/token"
+    logger.info(f"Exchanging code for token at {token_url}")
     
-    payload = {
-        "clientId": client_id,
-        "clientSecret": client_secret,
+    # RADAR OAuth token endpoint requires Basic Auth and form-encoded body
+    # Basic Auth: client_id:client_secret
+    # Body: code, state, redirect_uri, grant_type=authorization_code
+    auth = (client_id, client_secret)
+    data = {
         "code": code,
-        "state": state
+        "state": state,
+        "grant_type": "authorization_code"
     }
     
     if redirect_url:
-        payload["redirectUrl"] = redirect_url
+        data["redirect_uri"] = redirect_url
     
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 token_url,
-                json=payload,
+                auth=auth,
+                data=data,  # form-encoded, not JSON
                 timeout=30.0
             )
             
+            logger.info(f"RADAR token exchange response: status={response.status_code}")
+            
             if response.status_code == 401:
+                logger.error(f"RADAR token exchange 401: {response.text}")
                 raise HTTPException(
                     status_code=401,
                     detail="Invalid authorization code or state. Please try authenticating again."
@@ -66,6 +78,7 @@ async def exchange_code_for_token(
                 except (json.JSONDecodeError, ValueError):
                     pass
                 
+                logger.error(f"RADAR token exchange failed: {response.status_code} - {error_detail}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Failed to exchange authorization code for token: {error_detail}"
@@ -76,6 +89,7 @@ async def exchange_code_for_token(
     except HTTPException:
         raise
     except httpx.HTTPError as e:
+        logger.error(f"RADAR token exchange network error: {e!s}")
         raise HTTPException(
             status_code=500,
             detail=f"Network error while communicating with RADAR: {e!s}"
@@ -146,37 +160,56 @@ def authorize_radar(request: Request, entry_id: int | None = None):
     Initiate OAuth Authorization Code flow.
     Returns redirect URL to RADAR's OAuth authorize endpoint.
     """
-    if not server.radar_client_id or not server.radar_redirect_url:
+    logger.info("RADAR authorize endpoint called")
+    try:
+        logger.info(f"RADAR authorize request: entry_id={entry_id}")
+        
+        if not server.radar_client_id or not server.radar_redirect_url:
+            logger.error("RADAR OAuth not configured: client_id={}, redirect_url={}".format(
+                bool(server.radar_client_id), bool(server.radar_redirect_url)
+            ))
+            raise HTTPException(
+                status_code=500,
+                detail="RADAR OAuth is not configured. Please contact the administrator."
+            )
+        
+        # Generate secure state parameter
+        state = generate_oauth_state()
+        logger.info(f"Generated OAuth state: {state[:16]}...")
+        
+        # Store state in app state (in-memory, process-local)
+        # In production, use proper session storage (Redis, database, etc.)
+        if not hasattr(request.app.state, 'oauth_states'):
+            request.app.state.oauth_states = {}
+        request.app.state.oauth_states[state] = {
+            'timestamp': json.dumps({'created_at': None}),
+            'entry_id': entry_id  # Store entry_id to redirect back after OAuth
+        }
+        logger.info(f"RADAR state stored: {state[:16]}... (total states: {len(request.app.state.oauth_states)})")
+        
+        # Build OAuth authorize URL
+        params = {
+            'client_id': server.radar_client_id,
+            'response_type': 'code',
+            'redirect_uri': server.radar_redirect_url,
+            'state': state
+        }
+        
+        # Use test environment by default (can be overridden by provider config)
+        base_url = server.radar_base_url
+        authorize_url = f"{base_url}/oauth/authorize?{urlencode(params)}"
+        logger.info(f"RADAR authorize URL: {base_url}/oauth/authorize (redirect_uri={server.radar_redirect_url})")
+        
+        # Redirect directly to RADAR OAuth endpoint
+        return RedirectResponse(url=authorize_url, status_code=302)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"RADAR authorize error: {type(e).__name__}: {e!s}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail="RADAR OAuth is not configured. Please contact the administrator."
-        )
-    
-    # Generate secure state parameter
-    state = generate_oauth_state()
-    
-    # Store state in session (simple implementation using app state)
-    # In production, use proper session storage (Redis, database, etc.)
-    if not hasattr(request.app.state, 'oauth_states'):
-        request.app.state.oauth_states = {}
-    request.app.state.oauth_states[state] = {
-        'timestamp': json.dumps({'created_at': None}),
-        'entry_id': entry_id  # Store entry_id to redirect back after OAuth
-    }
-    
-    # Build OAuth authorize URL
-    params = {
-        'client_id': server.radar_client_id,
-        'response_type': 'code',
-        'redirect_uri': server.radar_redirect_url,
-        'state': state
-    }
-    
-    # Use test environment by default (can be overridden by provider config)
-    base_url = server.radar_base_url
-    authorize_url = f"{base_url}/oauth/authorize?{urlencode(params)}"
-    
-    return {"redirect_url": authorize_url}
+            detail=f"Internal server error: {type(e).__name__}: {e!s}"
+        ) from e
 
 
 @share_router.get('/share/radar/callback')
@@ -185,20 +218,41 @@ async def callback_radar(request: Request, code: str, state: str | None = None):
     Handle OAuth callback from RADAR.
     Exchange authorization code for access token.
     """
+    logger.error(f"RADAR callback received: code={'present' if code else 'missing'}, state={'present' if state else 'missing'}")
+    logger.error(f"Request URL: {request.url}")
+    logger.error(f"Query params: {dict(request.query_params)}")
+    
+    # Check if session is available
+    if not hasattr(request, 'session'):
+        logger.error("SessionMiddleware not available - request.session attribute missing")
+        raise HTTPException(
+            status_code=500,
+            detail="Session support not available. SessionMiddleware must be installed."
+        )
+    
     if not code:
+        logger.error("RADAR callback missing authorization code")
         raise HTTPException(
             status_code=400,
             detail="Authorization code not received from RADAR"
         )
     
     if not state:
+        logger.error("RADAR callback missing state parameter")
         raise HTTPException(
             status_code=400,
             detail="State parameter not received from RADAR"
         )
     
     # Verify state parameter exists (basic CSRF protection)
-    if not hasattr(request.app.state, 'oauth_states') or state not in request.app.state.oauth_states:
+    if not hasattr(request.app.state, 'oauth_states'):
+        logger.error("RADAR callback: oauth_states not initialized in app.state")
+        request.app.state.oauth_states = {}
+    
+    logger.info(f"RADAR callback checking state: {state[:16] if state else 'None'}... (available states: {list(request.app.state.oauth_states.keys())[:3] if request.app.state.oauth_states else 'none'}...)")
+    
+    if state not in request.app.state.oauth_states:
+        logger.error(f"RADAR callback invalid state: {state[:16] if state else 'None'}... (available states: {list(request.app.state.oauth_states.keys())[:3] if request.app.state.oauth_states else 'none'}...)")
         raise HTTPException(
             status_code=400,
             detail="Invalid state parameter. Possible CSRF attack detected."
@@ -207,19 +261,24 @@ async def callback_radar(request: Request, code: str, state: str | None = None):
     # Get entry_id from state before cleaning up
     state_data = request.app.state.oauth_states.get(state, {})
     entry_id = state_data.get('entry_id')
+    logger.info(f"RADAR callback state valid, entry_id={entry_id}")
     
     # Clean up state (one-time use)
     del request.app.state.oauth_states[state]
     
     # Get RADAR configuration
     if not server.radar_client_id or not server.radar_client_secret:
+        logger.error("RADAR OAuth not configured in callback")
         raise HTTPException(
             status_code=500,
             detail="RADAR OAuth is not configured. Please contact the administrator."
         )
     
-    # Determine base URL (use test environment by default)
-    base_url = server.radar_base_url
+    # Token exchange endpoint is at /radar-backend/oauth/token
+    # OAuth authorize is at /radar-backend/oauth/authorize
+    # Token exchange is at /radar-backend/oauth/token (not /radar/api/tokens)
+    token_base_url = server.radar_base_url
+    logger.info(f"RADAR callback exchanging code for token at {token_base_url}/oauth/token")
     
     try:
         # Exchange code for access token
@@ -229,22 +288,38 @@ async def callback_radar(request: Request, code: str, state: str | None = None):
             client_id=server.radar_client_id,
             client_secret=server.radar_client_secret,
             redirect_url=server.radar_redirect_url,
-            base_url=base_url
+            base_url=token_base_url
         )
+        
+        logger.info("RADAR token exchange successful")
         
         access_token = token_response.get('access_token')
         if not access_token:
+            logger.error("RADAR token response missing access_token")
             raise HTTPException(
                 status_code=500,
                 detail="Failed to obtain access token from RADAR"
             )
         
         # Store token in session (server-side, not visible to browser)
-        request.session['radar_access_token'] = access_token
-        if token_response.get('refresh_token'):
-            request.session['radar_refresh_token'] = token_response.get('refresh_token')
-        if token_response.get('expires_in'):
-            request.session['radar_token_expires_in'] = token_response.get('expires_in')
+        try:
+            request.session['radar_access_token'] = access_token
+            if token_response.get('refresh_token'):
+                request.session['radar_refresh_token'] = token_response.get('refresh_token')
+            if token_response.get('expires_in'):
+                request.session['radar_token_expires_in'] = token_response.get('expires_in')
+            logger.info("RADAR token stored in session successfully")
+        except AttributeError as e:
+            logger.error(f"Failed to access session: {e!s}")
+            raise HTTPException(
+                status_code=500,
+                detail="Session support not available. SessionMiddleware must be installed and configured."
+            ) from e
+        except Exception as e:
+            logger.error(f"Failed to store token in session: {type(e).__name__}: {e!s}")
+            raise
+        
+        logger.info(f"RADAR token stored in session, redirecting to entry_id={entry_id}")
         
         # Redirect to frontend - token is now in session, accessible via session cookie
         from fastapi.responses import RedirectResponse
@@ -253,9 +328,11 @@ async def callback_radar(request: Request, code: str, state: str | None = None):
         else:
             return RedirectResponse(url="/manager/list", status_code=302)
         
-    except HTTPException:
+    except HTTPException as e:
+        logger.error(f"RADAR callback HTTPException: {e.status_code} - {e.detail}")
         raise
     except Exception as e:
+        logger.error(f"RADAR callback unexpected error: {type(e).__name__}: {e!s}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Unexpected error during OAuth callback: {e!s}"
