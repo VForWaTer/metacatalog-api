@@ -19,7 +19,7 @@
             error = null;
             apiKeyStatus.set('unknown');
             if (hasStoredToken()) {
-                inputValue = localStorage.getItem('metacatalog_admin_token') ?? '';
+                inputValue = localStorage.getItem('metacatalog_api_key') ?? '';
             }
         }
     });

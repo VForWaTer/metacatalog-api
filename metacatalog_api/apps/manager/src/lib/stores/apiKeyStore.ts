@@ -3,7 +3,7 @@ import { writable } from 'svelte/store';
 // Initialize API key from localStorage if available
 function getInitialApiKey(): string {
     if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('metacatalog_admin_token');
+        const stored = localStorage.getItem('metacatalog_api_key');
         if (stored) {
             return stored;
         }
@@ -18,9 +18,9 @@ export const apiKey = writable<string>(getInitialApiKey());
 if (typeof window !== 'undefined') {
     apiKey.subscribe((value) => {
         if (value && value.trim() !== '') {
-            localStorage.setItem('metacatalog_admin_token', value);
+            localStorage.setItem('metacatalog_api_key', value);
         } else {
-            localStorage.removeItem('metacatalog_admin_token');
+            localStorage.removeItem('metacatalog_api_key');
         }
     });
 }
@@ -39,7 +39,7 @@ export function closeTokenModal(): void {
 
 export function hasStoredToken(): boolean {
     if (typeof window === 'undefined') return false;
-    const t = localStorage.getItem('metacatalog_admin_token');
+    const t = localStorage.getItem('metacatalog_api_key');
     return t !== null && t.trim() !== '';
 }
 
@@ -105,7 +105,7 @@ export function getDefaultAdminKey(): string {
     
     // Fallback to localStorage if available
     if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('metacatalog_admin_token');
+        const storedToken = localStorage.getItem('metacatalog_api_key');
         if (storedToken) {
             return storedToken;
         }
@@ -119,7 +119,7 @@ export function getDefaultAdminKey(): string {
 // Function to store admin token in localStorage
 export function storeAdminToken(token: string): void {
     if (typeof window !== 'undefined') {
-        localStorage.setItem('metacatalog_admin_token', token);
+        localStorage.setItem('metacatalog_api_key', token);
         console.log('Admin token stored in localStorage');
     }
 }
@@ -127,7 +127,7 @@ export function storeAdminToken(token: string): void {
 // Function to clear admin token from localStorage
 export function clearAdminToken(): void {
     if (typeof window !== 'undefined') {
-        localStorage.removeItem('metacatalog_admin_token');
+        localStorage.removeItem('metacatalog_api_key');
         console.log('Admin token cleared from localStorage');
     }
 }
@@ -136,7 +136,7 @@ export function clearAdminToken(): void {
 export function syncApiKeyFromStorage(): void {
     if (typeof window === 'undefined') return;
     if (!hasStoredToken()) return;
-    const stored = localStorage.getItem('metacatalog_admin_token');
+    const stored = localStorage.getItem('metacatalog_api_key');
     if (stored) {
         apiKey.update((current) => (current ? current : stored));
     }
