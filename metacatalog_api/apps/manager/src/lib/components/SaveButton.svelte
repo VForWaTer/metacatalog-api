@@ -1,30 +1,26 @@
 <script lang="ts">
     import { isFormValid, submissionState, submissionError, cleanEntry, dirtySections } from '$lib/stores/metadataStore';
     import { buildApiUrl, devFetch } from '$lib/stores/settingsStore';
-    import { apiKey, isLocalhost, getDefaultAdminKey } from '$lib/stores/apiKeyStore';
+    import { apiKey, isLocalhost, getDefaultAdminKey, openTokenModal } from '$lib/stores/apiKeyStore';
     import { goto } from '$app/navigation';
     import { appPath } from '$lib/utils';
 
     async function saveMetadata() {
         if (!$isFormValid) return;
 
+        let currentApiKey = $apiKey || getDefaultAdminKey();
+        if (!currentApiKey || (!isLocalhost() && currentApiKey === 'admin-localhost-dev-key')) {
+            openTokenModal();
+            submissionError.set('API key required to save. Set it in the modal or close to continue in read-only.');
+            submissionState.set('error');
+            return;
+        }
+
         submissionState.set('submitting');
         submissionError.set('');
 
         try {
             const payload = $cleanEntry;
-            
-            // Get API key - use default admin key for localhost
-            let currentApiKey = $apiKey;
-            if (!currentApiKey && isLocalhost()) {
-                currentApiKey = getDefaultAdminKey();
-                apiKey.set(currentApiKey);
-            }
-            
-            if (!currentApiKey) {
-                throw new Error('No API key available. Please set an API key for authentication.');
-            }
-            
             const createUrl = buildApiUrl('/entries');
             console.log('🔍 Save URL:', createUrl, 'Environment:', typeof window !== 'undefined' ? 'browser' : 'server');
             const response = await devFetch(createUrl, {

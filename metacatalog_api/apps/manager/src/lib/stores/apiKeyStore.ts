@@ -6,6 +6,21 @@ export const apiKey = writable<string>('');
 // Store for API key status
 export const apiKeyStatus = writable<'unknown' | 'valid' | 'invalid' | 'checking'>('unknown');
 
+// Modal visibility for token entry (open/close from anywhere)
+export const tokenModalOpen = writable<boolean>(false);
+export function openTokenModal(): void {
+    tokenModalOpen.set(true);
+}
+export function closeTokenModal(): void {
+    tokenModalOpen.set(false);
+}
+
+export function hasStoredToken(): boolean {
+    if (typeof window === 'undefined') return false;
+    const t = localStorage.getItem('metacatalog_admin_token');
+    return t !== null && t.trim() !== '';
+}
+
 // Function to validate API key
 export async function validateApiKey(key: string, backendUrl: string): Promise<boolean> {
     if (!key) return false;
@@ -81,5 +96,15 @@ export function clearAdminToken(): void {
     if (typeof window !== 'undefined') {
         localStorage.removeItem('metacatalog_admin_token');
         console.log('🔑 Admin token cleared from localStorage');
+    }
+}
+
+/** Sync apiKey store from localStorage when token exists and store is empty. Call from layout on init. */
+export function syncApiKeyFromStorage(): void {
+    if (typeof window === 'undefined') return;
+    if (!hasStoredToken()) return;
+    const stored = localStorage.getItem('metacatalog_admin_token');
+    if (stored) {
+        apiKey.update((current) => (current ? current : stored));
     }
 } 
