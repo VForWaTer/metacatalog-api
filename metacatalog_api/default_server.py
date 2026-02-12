@@ -1,6 +1,16 @@
 from fastapi import Request, Depends
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
-from starlette.staticfiles import StaticFiles
+import secrets
+
+# Try to import SessionMiddleware, fallback if not available
+try:
+    from starlette.middleware.sessions import SessionMiddleware
+    SESSION_MIDDLEWARE_AVAILABLE = True
+except ImportError:
+    SESSION_MIDDLEWARE_AVAILABLE = False
+    import logging
+    logging.warning("SessionMiddleware not available. OAuth token storage will not work.")
 
 from metacatalog_api.server import app, server
 
@@ -26,6 +36,17 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Add session middleware for OAuth token storage
+if SESSION_MIDDLEWARE_AVAILABLE:
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=secrets.token_urlsafe(32),
+        max_age=86400  # 24 hours
+    )
+else:
+    import logging
+    logging.warning("SessionMiddleware not installed. Install starlette-session or use a session package.")
+
 # the main page is defined here
 # this can easily be changed to a different entrypoint
 @app.get('/')
@@ -50,10 +71,27 @@ app.include_router(security_router)
 # add the manager application (SvelteKit)
 app.include_router(manager_router)
 
-# Only mount static files in production (when dist directory exists)
+# Serve manager SPA - check if file exists, otherwise serve index.html
 import os
-if os.path.exists("metacatalog_api/apps/manager/dist"):
-    app.mount("/manager", StaticFiles(directory="metacatalog_api/apps/manager/dist", html=True), name="manager")
+dist_dir = "metacatalog_api/apps/manager/dist"
+
+@app.get("/manager")
+async def serve_manager():
+    index_path = os.path.join(dist_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
+@app.get("/manager/{file_path:path}")
+async def serve_manager_file(file_path: str):
+    full_path = os.path.join(dist_dir, file_path)
+    if os.path.isfile(full_path):
+        return FileResponse(full_path)
+    # File doesn't exist, serve index.html for SPA routing
+    index_path = os.path.join(dist_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 
 if __name__ == '__main__':

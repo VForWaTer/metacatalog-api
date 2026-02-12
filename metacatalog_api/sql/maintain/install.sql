@@ -305,9 +305,11 @@ CREATE TABLE IF NOT EXISTS {schema}.persons
     organisation_abbrev character varying(64) COLLATE pg_catalog."default",
     affiliation character varying(1024) COLLATE pg_catalog."default",
     attribution character varying(1024) COLLATE pg_catalog."default",
+    orcid character varying(19) COLLATE pg_catalog."default",
     CONSTRAINT persons_pkey PRIMARY KEY (id),
     CONSTRAINT persons_check CHECK (NOT (last_name IS NULL AND organisation_name IS NULL)),
-    CONSTRAINT persons_uuid_key UNIQUE (uuid)
+    CONSTRAINT persons_uuid_key UNIQUE (uuid),
+    CONSTRAINT persons_orcid_key UNIQUE (orcid)
 );
 
 ALTER SEQUENCE persons_id_seq OWNED BY persons.id;

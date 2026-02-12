@@ -491,8 +491,15 @@ class EntryTable(EntryBase, table=True):
         elif isinstance(v, str):
             shape = loads(v)
         elif isinstance(v, dict):
-            shape = from_geojson(PointModel.model_validate(v).model_dump_json())
+            point = PointModel.model_validate(v)
+            # Check if coordinates are null/None
+            if point.coordinates is None or None in point.coordinates:
+                return None
+            shape = from_geojson(point.model_dump_json())
         elif isinstance(v, PointModel):
+            # Check if coordinates are null/None
+            if v.coordinates is None or None in v.coordinates:
+                return None
             shape = from_geojson(v.model_dump_json())
         elif isinstance(v, WKBElement):
             shape = to_shape(v)

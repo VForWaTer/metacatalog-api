@@ -96,11 +96,6 @@
                         }
                     }
 
-                    // For OAuth providers, add access_token to form data if we have it
-                    if (schema.auth_type === 'oauth' && tokenFromStorage) {
-                        initialData['access_token'] = tokenFromStorage;
-                    }
-
                     formData = initialData;
                 }
             } else {
@@ -150,10 +145,12 @@
         success = null;
 
         try {
-            // Save token to localStorage before submitting (for both OAuth and manual tokens)
-            const tokenValue = formData[providerTokenKey] || formData['zenodo_token'];
-            if (tokenValue && typeof window !== 'undefined') {
-                localStorage.setItem(providerTokenKey, tokenValue.trim());
+            // For non-OAuth providers, save token to localStorage
+            if (formSchema?.auth_type !== 'oauth') {
+                const tokenValue = formData[providerTokenKey] || formData['zenodo_token'];
+                if (tokenValue && typeof window !== 'undefined') {
+                    localStorage.setItem(providerTokenKey, tokenValue.trim());
+                }
             }
             
             const response = await fetch(
@@ -231,7 +228,8 @@
         if (!oauthConfig) return;
 
         try {
-            const authResponse = await fetch(buildApiUrl(oauthConfig.authorize_endpoint));
+            // Pass entry_id to authorize endpoint so we can redirect back after OAuth
+            const authResponse = await fetch(buildApiUrl(`${oauthConfig.authorize_endpoint}?entry_id=${entryId}`));
             if (!authResponse.ok) {
                 throw new Error(`Failed to get OAuth redirect URL: ${authResponse.statusText}`);
             }
@@ -250,61 +248,6 @@
         }
     }
 
-    async function handleOAuthCallback() {
-        if (!oauthConfig) return;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const errorParam = urlParams.get('error');
-
-        if (errorParam) {
-            error = `OAuth error: ${errorParam}`;
-            return;
-        }
-
-        if (!code || !state) {
-            return; // Not an OAuth callback
-        }
-
-        try {
-            const callbackResponse = await fetch(
-                buildApiUrl(`${oauthConfig.callback_endpoint}?code=${code}&state=${state}`)
-            );
-
-            if (!callbackResponse.ok) {
-                const errorData = await callbackResponse.json().catch(() => ({ detail: callbackResponse.statusText }));
-                throw new Error(errorData.detail || `OAuth callback failed: ${callbackResponse.statusText}`);
-            }
-
-            const tokenData = await callbackResponse.json();
-            const accessToken = tokenData.access_token;
-
-            if (accessToken) {
-                // Store token
-                localStorage.setItem(providerTokenKey, accessToken);
-                tokenFromStorage = accessToken;
-
-                // Clean up URL parameters
-                window.history.replaceState({}, '', window.location.pathname);
-
-                // Reload form to show the actual form now that we have a token
-                await fetchFormSchema();
-            } else {
-                throw new Error('No access token received from OAuth callback');
-            }
-        } catch (err) {
-            error = `OAuth callback error: ${err instanceof Error ? err.message : 'Unknown error'}`;
-        }
-    }
-
-    // Watch for isOpen changes and handle OAuth callback
-    $effect(() => {
-        if (isOpen && oauthConfig) {
-            // Check if we're returning from OAuth
-            handleOAuthCallback();
-        }
-    });
 
     function handleBackdropClick(event: MouseEvent | KeyboardEvent) {
         if (event.target === event.currentTarget) {
@@ -427,8 +370,8 @@
                         </div>
                     {/if}
 
-                     <!-- Form Fields (only show when authenticated) -->
-                     {#if (formSchema.auth_type !== 'oauth' || tokenFromStorage)}
+                     <!-- Form Fields (OAuth tokens are stored server-side in session) -->
+                     {#if formSchema.auth_type !== 'oauth' || true}
                          <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
                              <div class="space-y-4">
                             {#each formSchema.fields as field}
