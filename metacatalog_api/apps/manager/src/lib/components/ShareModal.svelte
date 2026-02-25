@@ -223,29 +223,9 @@
         }
     }
 
-    // OAuth handling
-    async function handleOAuthRedirect() {
-        if (!oauthConfig) return;
-
-        try {
-            // Pass entry_id to authorize endpoint so we can redirect back after OAuth
-            const authResponse = await fetch(buildApiUrl(`${oauthConfig.authorize_endpoint}?entry_id=${entryId}`));
-            if (!authResponse.ok) {
-                throw new Error(`Failed to get OAuth redirect URL: ${authResponse.statusText}`);
-            }
-
-            const authData = await authResponse.json();
-            const redirectUrl = authData.redirect_url;
-
-            if (redirectUrl) {
-                // Redirect to OAuth provider
-                window.location.href = redirectUrl;
-            } else {
-                throw new Error('No redirect URL received from server');
-            }
-        } catch (err) {
-            error = `OAuth error: ${err instanceof Error ? err.message : 'Unknown error'}`;
-        }
+    function handleOAuthRedirect() {
+        if (!oauthConfig?.authorize_endpoint) return;
+        window.location.href = buildApiUrl(`${oauthConfig.authorize_endpoint}?entry_id=${entryId}`);
     }
 
 

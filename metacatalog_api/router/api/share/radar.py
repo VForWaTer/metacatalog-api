@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jinja2 import TemplateError
@@ -104,16 +104,15 @@ async def refresh_radar_token(
 ) -> dict:
     """
     Refresh expired access token.
+    RADAR API: POST /tokens/refresh with JSON body.
     Returns: {"access_token": str, "refresh_token": str, "expires_in": int}
     """
     token_url = f"{base_url}/tokens/refresh"
-    
     payload = {
         "clientId": client_id,
         "clientSecret": client_secret,
         "refreshToken": refresh_token
     }
-    
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -121,7 +120,6 @@ async def refresh_radar_token(
                 json=payload,
                 timeout=30.0
             )
-            
             if response.status_code not in [200, 201]:
                 error_detail = response.text
                 try:
@@ -129,20 +127,68 @@ async def refresh_radar_token(
                     error_detail = error_json.get('message', error_detail)
                 except (json.JSONDecodeError, ValueError):
                     pass
-                
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Failed to refresh RADAR token: {error_detail}"
                 )
-            
             return response.json()
-            
     except HTTPException:
         raise
     except httpx.HTTPError as e:
         raise HTTPException(
             status_code=500,
             detail=f"Network error while refreshing RADAR token: {e!s}"
+        ) from e
+
+
+async def get_token_via_password(
+    user_name: str,
+    user_password: str,
+    client_id: str,
+    client_secret: str,
+    redirect_url: str,
+    base_url: str
+) -> dict:
+    """
+    Get RADAR access token via username/password (RADAR API: POST /tokens).
+    Body: clientId, clientSecret, redirectUrl, userName, userPassword.
+    Returns: {"access_token": str, "refresh_token": str?, "expires_in": int?}
+    """
+    token_url = f"{base_url}/tokens"
+    payload = {
+        "clientId": client_id,
+        "clientSecret": client_secret,
+        "redirectUrl": redirect_url,
+        "userName": user_name,
+        "userPassword": user_password
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                token_url,
+                json=payload,
+                timeout=30.0
+            )
+            if response.status_code not in [200, 201]:
+                error_detail = response.text
+                try:
+                    error_json = response.json()
+                    error_detail = error_json.get('message', error_json.get('status', error_detail))
+                except (json.JSONDecodeError, ValueError):
+                    pass
+                logger.error(f"RADAR password token failed: {response.status_code} - {error_detail}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"RADAR login failed: {error_detail}"
+                )
+            return response.json()
+    except HTTPException:
+        raise
+    except httpx.HTTPError as e:
+        logger.error(f"RADAR password token network error: {e!s}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Network error while communicating with RADAR: {e!s}"
         ) from e
 
 
@@ -213,7 +259,11 @@ def authorize_radar(request: Request, entry_id: int | None = None):
 
 
 @share_router.get('/share/radar/callback')
-async def callback_radar(request: Request, code: str, state: str | None = None):
+async def callback_radar(
+    request: Request, 
+    code: str = Query(..., alias="code"),
+    state: str | None = Query(None, alias="state")
+):
     """
     Handle OAuth callback from RADAR.
     Exchange authorization code for access token.
@@ -733,28 +783,87 @@ def create_radar_package(request: Request, entry_id: int) -> tuple[str, str]:
         ) from e
 
 
+@share_router.post('/share/radar/login')
+async def radar_login(request: Request):
+    """
+    Log in to RADAR via username/password (RADAR API POST /tokens).
+    Stores access token in session for use by submit.
+    """
+    if not hasattr(request, 'session'):
+        raise HTTPException(
+            status_code=500,
+            detail="Session support not available. SessionMiddleware must be installed."
+        )
+    if not server.radar_client_id or not server.radar_client_secret or not server.radar_redirect_url:
+        raise HTTPException(
+            status_code=500,
+            detail="RADAR is not configured (client_id, client_secret, redirect_url required)."
+        )
+    try:
+        body = await request.json()
+        user_name = (body.get('userName') or body.get('radar_username') or '').strip()
+        user_password = body.get('userPassword') or body.get('radar_password') or ''
+        use_production = body.get('use_production', False)
+    except (json.JSONDecodeError, ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="JSON body with userName and userPassword required.")
+    if not user_name or not user_password:
+        raise HTTPException(status_code=400, detail="userName and userPassword are required.")
+    base_url = "https://www.radar-service.eu/radar/api" if use_production else server.radar_base_url
+    token_response = await get_token_via_password(
+        user_name=user_name,
+        user_password=user_password,
+        client_id=server.radar_client_id,
+        client_secret=server.radar_client_secret,
+        redirect_url=server.radar_redirect_url,
+        base_url=base_url
+    )
+    access_token = token_response.get('access_token')
+    if not access_token:
+        raise HTTPException(status_code=500, detail="RADAR did not return an access token.")
+    request.session['radar_access_token'] = access_token
+    if token_response.get('refresh_token'):
+        request.session['radar_refresh_token'] = token_response.get('refresh_token')
+    if token_response.get('expires_in'):
+        request.session['radar_token_expires_in'] = token_response.get('expires_in')
+    return {"success": True, "message": "Logged in to RADAR."}
+
+
 @share_router.get('/share/radar/form')
 def get_radar_form(entry_id: int, request: Request):
     """
-    RADAR Upload
-    Get form for RADAR upload
+    RADAR upload
+    Form uses password-based token (RADAR API POST /tokens).
+    Contract/workspace fields omitted when set in env.
     """
-    # Validate entry exists
     entries = core.entries(ids=entry_id)
     if len(entries) == 0:
         raise HTTPException(status_code=404, detail=f"Entry of <ID={entry_id}> not found")
 
-    # Return form with OAuth configuration and fields
-    # Note: If RADAR is not configured, we still return the form but it will fail on submit
-    # This allows the UI to show the form and provide a better error message
-    return {
-        "auth_type": "oauth",
-        "provider_token_key": "radar_token",
-        "oauth_config": {
-            "authorize_endpoint": "/share/radar/authorize",
-            "callback_endpoint": "/share/radar/callback"
+    fields = [
+        {
+            "name": "radar_username",
+            "type": "text",
+            "label": "RADAR username",
+            "required": True,
+            "help": "RADAR account (local ID/password account, not Shibboleth)"
         },
-        "fields": [
+        {
+            "name": "radar_password",
+            "type": "password",
+            "label": "RADAR password",
+            "required": True,
+            "help": "RADAR password"
+        },
+        {
+            "name": "use_production",
+            "type": "checkbox",
+            "label": "Use Production Environment",
+            "default": False,
+            "help": "Upload to RADAR production instead of test environment"
+        }
+    ]
+    if not server.radar_contract_id or not server.radar_workspace_id:
+        fields.extend([
             {
                 "name": "contract_id",
                 "type": "text",
@@ -768,15 +877,14 @@ def get_radar_form(entry_id: int, request: Request):
                 "label": "Workspace ID",
                 "required": True,
                 "help": "The RADAR workspace ID where the dataset will be created"
-            },
-            {
-                "name": "use_production",
-                "type": "checkbox",
-                "label": "Use Production Environment",
-                "default": False,
-                "help": "Upload to RADAR production instead of test environment"
             }
-        ],
+        ])
+
+    return {
+        "auth_type": "password",
+        "provider_token_key": "radar_token",
+        "login_endpoint": "/share/radar/login",
+        "fields": fields,
         "metadata_preview": False
     }
 
@@ -784,31 +892,49 @@ def get_radar_form(entry_id: int, request: Request):
 @share_router.post('/share/radar/submit')
 async def submit_radar(entry_id: int, request: Request):
     """
-    Submit RADAR upload request
+    Submit RADAR upload. Uses session token, or logs in with radar_username/radar_password from body if no token.
     """
-    # Get access token from session (server-side, set during OAuth callback)
     access_token = request.session.get('radar_access_token')
+    try:
+        body = await request.json()
+        use_production = body.get('use_production', False)
+        contract_id = body.get('contract_id') or server.radar_contract_id
+        workspace_id = body.get('workspace_id') or server.radar_workspace_id
+        radar_username = (body.get('radar_username') or '').strip()
+        radar_password = body.get('radar_password') or ''
+    except (json.JSONDecodeError, ValueError, TypeError) as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid request body. Expected JSON with radar_username, radar_password, and optionally contract_id, workspace_id, use_production."
+        ) from e
+
+    if not access_token and (radar_username and radar_password):
+        if not server.radar_client_id or not server.radar_client_secret or not server.radar_redirect_url:
+            raise HTTPException(status_code=500, detail="RADAR is not configured.")
+        base_url = "https://www.radar-service.eu/radar/api" if use_production else server.radar_base_url
+        token_response = await get_token_via_password(
+            user_name=radar_username,
+            user_password=radar_password,
+            client_id=server.radar_client_id,
+            client_secret=server.radar_client_secret,
+            redirect_url=server.radar_redirect_url,
+            base_url=base_url
+        )
+        access_token = token_response.get('access_token')
+        if access_token:
+            request.session['radar_access_token'] = access_token
+            if token_response.get('refresh_token'):
+                request.session['radar_refresh_token'] = token_response.get('refresh_token')
+            if token_response.get('expires_in'):
+                request.session['radar_token_expires_in'] = token_response.get('expires_in')
+
     if not access_token:
         raise HTTPException(
             status_code=401,
-            detail="Not authenticated with RADAR. Please authenticate first."
+            detail="Not authenticated with RADAR. Enter RADAR username and password, or log in first."
         )
-    
-    # Parse request body
-    try:
-        body = await request.json()
-        contract_id = body.get('contract_id')
-        workspace_id = body.get('workspace_id')
-        use_production = body.get('use_production', False)
-    except (json.JSONDecodeError, ValueError, TypeError, KeyError) as e:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid request body. Expected JSON with 'contract_id', 'workspace_id', and optional 'use_production' fields."
-        ) from e
-
-    # Validate required fields
     if not contract_id or not workspace_id:
-        raise HTTPException(status_code=400, detail="contract_id and workspace_id are required")
+        raise HTTPException(status_code=400, detail="contract_id and workspace_id are required (or set in env).")
 
     # Get RADAR client credentials from server settings
     if not server.radar_client_id or not server.radar_client_secret:

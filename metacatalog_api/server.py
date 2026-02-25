@@ -28,11 +28,13 @@ class Server(BaseSettings):
     create_admin_token: bool = False
     validate_admin_token: str | None = None
     
-    # RADAR OAuth Configuration
+    # RADAR Configuration (see https://radar.products.fiz-karlsruhe.de/de/radarfeatures/radar-api)
     radar_client_id: str | None = None
     radar_client_secret: str | None = None
     radar_base_url: str = "https://test.radar-service.eu/radar/api"
     radar_redirect_url: str | None = None
+    radar_contract_id: str | None = None
+    radar_workspace_id: str | None = None
 
     @property
     def uri_prefix(self):
