@@ -64,8 +64,6 @@ export async function validateApiKey(key: string, backendUrl: string): Promise<b
             const result = await response.json();
             console.log('Token validation successful:', result);
             apiKeyStatus.set('valid');
-            // Store the validated key in the store (which will sync to localStorage)
-            apiKey.set(key.trim());
             return true;
         }
         
