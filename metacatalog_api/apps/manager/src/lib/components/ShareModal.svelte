@@ -22,9 +22,10 @@
         links?: Record<string, string>;
         prereserved_doi?: string;
     } | null>(null);
-    
-    // Token management
-    const TOKEN_STORAGE_KEY = 'zenodo_token';
+
+    // OAuth and Token management
+    let oauthConfig = $state<any>(null);
+    let providerTokenKey = $state<string>('token'); // Default fallback
     let tokenFromStorage = $state<string | null>(null);
     let tokenCleared = $state(false);
 
@@ -49,7 +50,7 @@
             tokenCleared = false;
             // Reload token from storage when modal reopens
             if (typeof window !== 'undefined') {
-                tokenFromStorage = localStorage.getItem(TOKEN_STORAGE_KEY);
+                tokenFromStorage = localStorage.getItem(providerTokenKey);
             }
         }
     });
@@ -62,19 +63,26 @@
             if (response.ok) {
                 const schema = await response.json();
                 formSchema = schema;
-                
+
+                // Extract OAuth configuration if present
+                oauthConfig = schema.oauth_config || null;
+                providerTokenKey = schema.provider_token_key || `${provider.provider}_token`;
+
                 // Initialize form data with defaults
                 if (schema.fields) {
                     const initialData: Record<string, any> = {};
-                    
-                    // Load token from localStorage
+
+                    // Load token from localStorage using dynamic key
                     if (typeof window !== 'undefined') {
-                        tokenFromStorage = localStorage.getItem(TOKEN_STORAGE_KEY);
+                        tokenFromStorage = localStorage.getItem(providerTokenKey);
                         tokenCleared = false;
                     }
-                    
+
                     for (const field of schema.fields) {
-                        if (field.name === 'zenodo_token' && tokenFromStorage && !tokenCleared) {
+                        // Check for provider-specific token field (OAuth) or zenodo_token (legacy)
+                        const isTokenField = field.name === providerTokenKey || field.name === 'zenodo_token';
+
+                        if (isTokenField && tokenFromStorage && !tokenCleared) {
                             // Prefill token from localStorage
                             initialData[field.name] = tokenFromStorage;
                         } else if (field.default !== undefined) {
@@ -87,6 +95,7 @@
                             initialData[field.name] = '';
                         }
                     }
+
                     formData = initialData;
                 }
             } else {
@@ -101,11 +110,13 @@
 
     function handleFieldChange(fieldName: string, value: any) {
         formData[fieldName] = value;
-        
+
         // Save token to localStorage when changed (but don't reset tokenCleared flag)
-        if (fieldName === 'zenodo_token' && typeof window !== 'undefined') {
+        // Check for provider-specific token field (OAuth) or zenodo_token (legacy)
+        const isTokenField = fieldName === providerTokenKey || fieldName === 'zenodo_token';
+        if (isTokenField && typeof window !== 'undefined') {
             if (value && value.trim()) {
-                localStorage.setItem(TOKEN_STORAGE_KEY, value.trim());
+                localStorage.setItem(providerTokenKey, value.trim());
                 // Only update tokenFromStorage if it was cleared (user entered new token)
                 if (tokenCleared) {
                     tokenFromStorage = value.trim();
@@ -113,13 +124,18 @@
             }
         }
     }
-    
+
     function clearToken() {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem(TOKEN_STORAGE_KEY);
+            localStorage.removeItem(providerTokenKey);
             tokenFromStorage = null;
             tokenCleared = true;
-            formData['zenodo_token'] = '';
+            // Clear the appropriate token field
+            if (formSchema?.fields?.some((f: any) => f.name === providerTokenKey)) {
+                formData[providerTokenKey] = '';
+            } else if (formData['zenodo_token'] !== undefined) {
+                formData['zenodo_token'] = '';
+            }
         }
     }
 
@@ -129,9 +145,12 @@
         success = null;
 
         try {
-            // Save token to localStorage before submitting
-            if (formData['zenodo_token'] && typeof window !== 'undefined') {
-                localStorage.setItem(TOKEN_STORAGE_KEY, formData['zenodo_token'].trim());
+            // For non-OAuth providers, save token to localStorage
+            if (formSchema?.auth_type !== 'oauth') {
+                const tokenValue = formData[providerTokenKey] || formData['zenodo_token'];
+                if (tokenValue && typeof window !== 'undefined') {
+                    localStorage.setItem(providerTokenKey, tokenValue.trim());
+                }
             }
             
             const response = await fetch(
@@ -204,6 +223,12 @@
         }
     }
 
+    function handleOAuthRedirect() {
+        if (!oauthConfig?.authorize_endpoint) return;
+        window.location.href = buildApiUrl(`${oauthConfig.authorize_endpoint}?entry_id=${entryId}`);
+    }
+
+
     function handleBackdropClick(event: MouseEvent | KeyboardEvent) {
         if (event.target === event.currentTarget) {
             // Only close on click or Enter/Space key
@@ -255,14 +280,30 @@
                         <p class="text-red-800 text-sm">{error}</p>
                     </div>
                 {:else if formSchema}
-                    <!-- Error Message -->
-                    {#if error}
-                        <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-                            <p class="text-red-800 text-sm">{error}</p>
-                        </div>
-                    {/if}
+                     <!-- Error Message -->
+                     {#if error}
+                         <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                             <p class="text-red-800 text-sm">{error}</p>
+                         </div>
+                     {/if}
 
-                    <!-- Success Message -->
+                     <!-- OAuth Authentication Required -->
+                     {#if formSchema.auth_type === 'oauth' && !tokenFromStorage}
+                         <div class="bg-blue-50 border border-blue-200 rounded-md p-6 mb-4 text-center">
+                             <h3 class="text-lg font-medium text-blue-900 mb-2">Authentication Required</h3>
+                             <p class="text-blue-700 text-sm mb-4">
+                                 To share to {provider.display_name}, you need to authenticate with their service first.
+                             </p>
+                             <button
+                                 onclick={handleOAuthRedirect}
+                                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                             >
+                                 Authenticate with {provider.display_name}
+                             </button>
+                         </div>
+                     {/if}
+
+                     <!-- Success Message -->
                     {#if success}
                         <div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
                             <p class="text-green-800 text-sm font-medium">{success}</p>
@@ -309,9 +350,10 @@
                         </div>
                     {/if}
 
-                    <!-- Form Fields -->
-                    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-                        <div class="space-y-4">
+                     <!-- Form Fields (OAuth tokens are stored server-side in session) -->
+                     {#if formSchema.auth_type !== 'oauth' || true}
+                         <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+                             <div class="space-y-4">
                             {#each formSchema.fields as field}
                                 <div>
                                     <label for={field.name} class="block text-sm font-medium text-gray-700 mb-1">
@@ -457,9 +499,10 @@
                                     Submit
                                 {/if}
                             </button>
-                        </div>
-                    </form>
-                {/if}
+                         </div>
+                     </form>
+                     {/if}
+                 {/if}
             </div>
         </div>
     </div>

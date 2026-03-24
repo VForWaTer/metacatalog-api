@@ -36,3 +36,11 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+## Token injection (embedding / iframe)
+
+To pass an API key from a parent app or iframe (e.g. Django with federated login), add the `token` query parameter to the manager URL. The app will validate it, store it in localStorage, and remove it from the address bar.
+
+Example: `https://example.com/manager?token=YOUR_TOKEN`
+
+Use this for iframe `src` or redirects after login. Prefer short-lived or one-time tokens when passing secrets in the URL.

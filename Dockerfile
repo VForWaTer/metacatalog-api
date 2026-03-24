@@ -13,9 +13,15 @@ COPY setup.py /app/setup.py
 COPY MANIFEST.in /app/MANIFEST.in
 
 
-# Install Node.js dependencies for the SvelteKit app (will be built at runtime)
+# Install Node.js dependencies and build the SvelteKit app
+ARG METACATALOG_ENVIRONMENT
 RUN cd /app/metacatalog_api/apps/manager && \
-    npm install
+    npm install && \
+    if [ "$METACATALOG_ENVIRONMENT" = "production" ]; then \
+        VITE_BACKEND_URL="" npm run build; \
+    else \
+        npm run build; \
+    fi
 
 RUN pip install --upgrade pip && \
     #pip install poetry && \

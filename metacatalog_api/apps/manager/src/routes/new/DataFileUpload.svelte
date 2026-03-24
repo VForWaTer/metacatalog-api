@@ -1,6 +1,6 @@
 <script lang="ts">
     import { buildApiUrl, devFetch } from '$lib/stores/settingsStore';
-    import { apiKey, isLocalhost, getDefaultAdminKey } from '$lib/stores/apiKeyStore';
+    import { apiKey, isLocalhost, getDefaultAdminKey, openTokenModal } from '$lib/stores/apiKeyStore';
     import { metadataEntry, metadataActions } from '$lib/stores/metadataStore';
     import type { DatasourceTypeBase, TemporalScaleBase, SpatialScaleBase } from '$lib/models';
     import TemporalScaleForm from './TemporalScaleForm.svelte';
@@ -61,20 +61,20 @@
     }
 
     async function handleFileUpload(file: File) {
+        let currentApiKey = $apiKey || getDefaultAdminKey();
+        if (!currentApiKey || (!isLocalhost() && currentApiKey === 'admin-localhost-dev-key')) {
+            openTokenModal();
+            uploadError = 'API key required to upload. Set it in the modal or close to continue in read-only.';
+            return;
+        }
+
         isUploading = true;
         uploadError = null;
         uploadResult = null;
 
         try {
-            // Get API key - use default admin key for localhost
-            let currentApiKey = $apiKey;
-            if (!currentApiKey && isLocalhost()) {
-                currentApiKey = getDefaultAdminKey();
+            if (isLocalhost() && !$apiKey) {
                 apiKey.set(currentApiKey);
-            }
-            
-            if (!currentApiKey) {
-                throw new Error('No API key available. Please set an API key for authentication.');
             }
 
             const formData = new FormData();

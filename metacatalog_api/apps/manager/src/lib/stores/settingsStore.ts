@@ -14,9 +14,25 @@ const isDev = (): boolean => {
 
 // Get backend URL from environment variable or fall back to default
 const getBackendUrl = (): string => {
-    // Since we disabled SSR, this will only run in the browser
-    // Browser environment - check for Vite environment variable
-    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
+    if (typeof window === 'undefined') {
+        // SSR context - return default
+        return 'http://localhost:8001';
+    }
+    
+    const viteUrl = import.meta.env.VITE_BACKEND_URL;
+    
+    // Empty string signals production mode - use same origin
+    if (viteUrl === '') {
+        return window.location.origin;
+    }
+    
+    // Explicit URL provided - use it
+    if (viteUrl) {
+        return viteUrl;
+    }
+    
+    // Development fallback
+    return 'http://localhost:8001';
 };
 
 // Settings store interface
