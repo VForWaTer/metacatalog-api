@@ -28,5 +28,5 @@ jobs:
           push: true
           build-args: METACATALOG_ENVIRONMENT=production
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/vforwater/metacatalog-api:latest
+            ghcr.io/vforwater/metacatalog-api:${{ github.ref_name }}
